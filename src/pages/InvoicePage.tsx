@@ -2,12 +2,15 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { Transak } from "@transak/transak-sdk"; // Correct import
+import type { TransakConfig } from "@transak/transak-sdk"; // Type import
+import '../types/transak.d.ts'; // Type patch file
 
 interface Invoice {
   invoice_id: string;
   client_name: string;
   description: string;
-  amount: number;
+  amount: string;
   wallet_address: string;
   status: string;
 }
@@ -24,7 +27,6 @@ const InvoicePage: React.FC = () => {
       try {
         setLoading(true);
         const res = await axios.get(`http://localhost:4000/api/invoices/${invoiceId}`);
-
         if (res.data && res.data.invoice_id) {
           setInvoice(res.data);
         } else {
@@ -37,58 +39,62 @@ const InvoicePage: React.FC = () => {
         setLoading(false);
       }
     };
-
     fetchInvoice();
   }, [invoiceId]);
 
-  const handlePayment = async () => {
+ const handlePayment = async () => {
     if (!invoice) return;
 
+    // Declare transak instance variable outside try block
+    let transak: Transak | null = null;
+
     try {
-      // ✅ Fetch API key securely from backend
       const { data } = await axios.get("http://localhost:4000/api/config/transak-key");
-      console.log("Fetched Transak key:", data);
 
-      // ✅ Initialize Transak widget (v4)
-      // ✅ Correct v4 usage
-const transak = (window as any).TransakSDK.init({
-  apiKey: data.apiKey,
-  environment: "STAGING",
-  fiatCurrency: "USD",
-  cryptoCurrency: "USDC",
-  walletAddress: invoice.wallet_address,
-  fiatAmount: invoice.amount,
-  email: "payer@example.com",
-  redirectURL: `${window.location.origin}/success/${invoice.invoice_id}`,
-  hostURL: window.location.origin,
-  widgetHeight: "650px",
-  widgetWidth: "500px",
-  themeColor: "0000FF",
-});
+      const config: TransakConfig = {
+        apiKey: data.apiKey,
+        environment: "STAGING",
+        widgetUrl: "https://global-stg.transak.com",
+        referrer: window.location.origin,
 
-      // ✅ Listen to Transak events (v4 syntax)
-      transak.on("TRANSAK_ORDER_SUCCESSFUL", (orderData: any) => {
-        console.log("✅ Transaction Successful:", orderData);
-        transak.close();
-        navigate(`/success/${invoice.invoice_id}`);
-      });
+        // --- Properties to pre-fill the modal ---
+        fiatCurrency: "USD",
+        fiatAmount: parseFloat(invoice.amount), // Ensure amount is a number
+        defaultCryptoCurrency: "USDC",
+        walletAddress: invoice.wallet_address,
+        disableWalletAddressForm: true,
+        // --- End of properties ---
 
-      transak.on("TRANSAK_ORDER_CANCELLED", () => {
-        console.log("❌ Transaction Cancelled");
-        transak.close();
-      });
+        widgetHeight: "550px", // Adjust size as needed
+        widgetWidth: "380px", // Adjust size as needed
+        // themeColor: "#0000FF", // Removed this line to use default color
+
+        onSuccess: (orderData: any) => {
+          console.log("✅ Transaction Successful:", orderData);
+          navigate(`/success/${invoice.invoice_id}`);
+        },
+        onCancel: () => {
+          console.log("❌ Transaction Cancelled by user inside flow.");
+        },
+        onClose: () => {
+          console.log("Widget Close event received. Modal should close.");
+        },
+
+        redirectURL: `${window.location.origin}/success/${invoice.invoice_id}`,
+      };
+
+      transak = new Transak(config); // Create instance using the config
+      transak.init(); // Initialize the widget
 
     } catch (err) {
       console.error("Error initializing Transak:", err);
-      alert("Payment system unavailable right now. Please try again.");
+      alert("Payment widget unavailable. Please try again later.");
     }
   };
 
-  if (loading)
-    return <div className="p-8 text-center text-gray-500">Loading invoice...</div>;
 
-  if (error || !invoice)
-    return <div className="p-8 text-center text-red-500">{error || "Invoice not found."}</div>;
+  if (loading) return <div className="p-8 text-center text-gray-500">Loading invoice...</div>;
+  if (error || !invoice) return <div className="p-8 text-center text-red-500">{error || "Invoice not found."}</div>;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 text-gray-800">
@@ -109,7 +115,6 @@ const transak = (window as any).TransakSDK.init({
             </span>
           </p>
         </div>
-
         <button
           onClick={handlePayment}
           className="mt-8 w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition"
