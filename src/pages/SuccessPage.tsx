@@ -1,0 +1,28 @@
+// src/pages/SuccessPage.tsx
+import React from "react";
+import { useParams } from "react-router-dom";
+
+const SuccessPage: React.FC = () => {
+  const { invoiceId } = useParams();
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-green-50 text-gray-800">
+      <h1 className="text-3xl font-bold mb-4 text-green-700">
+        Payment Successful ✅
+      </h1>
+      <p className="mb-6">Invoice ID: {invoiceId}</p>
+      <button
+        onClick={() =>
+          window.open(
+            `http://localhost:4000/api/invoices/${invoiceId}/receipt`,
+            "_blank"
+          )
+        }
+        className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg"
+      >
+        Download Receipt
+      </button>
+    </div>
+  );
+};
+
+export default SuccessPage;
