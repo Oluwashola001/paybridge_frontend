@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { init } from "@transak/transak-sdk"; // ✅ v4 syntax
 
 interface Invoice {
   invoice_id: string;
@@ -46,23 +45,28 @@ const InvoicePage: React.FC = () => {
     if (!invoice) return;
 
     try {
+      // ✅ Fetch API key securely from backend
       const { data } = await axios.get("http://localhost:4000/api/config/transak-key");
+      console.log("Fetched Transak key:", data);
 
-      const transak = init({
-        apiKey: data.apiKey, // ✅ securely fetched from backend
-        environment: "STAGING",
-        cryptoCurrency: "USDC",
-        fiatCurrency: "USD",
-        walletAddress: invoice.wallet_address,
-        fiatAmount: invoice.amount,
-        email: "payer@example.com",
-        redirectURL: `${window.location.origin}/success/${invoice.invoice_id}`,
-        hostURL: window.location.origin,
-        widgetHeight: "650px",
-        widgetWidth: "500px",
-        themeColor: "0000FF",
-      });
+      // ✅ Initialize Transak widget (v4)
+      // ✅ Correct v4 usage
+const transak = (window as any).TransakSDK.init({
+  apiKey: data.apiKey,
+  environment: "STAGING",
+  fiatCurrency: "USD",
+  cryptoCurrency: "USDC",
+  walletAddress: invoice.wallet_address,
+  fiatAmount: invoice.amount,
+  email: "payer@example.com",
+  redirectURL: `${window.location.origin}/success/${invoice.invoice_id}`,
+  hostURL: window.location.origin,
+  widgetHeight: "650px",
+  widgetWidth: "500px",
+  themeColor: "0000FF",
+});
 
+      // ✅ Listen to Transak events (v4 syntax)
       transak.on("TRANSAK_ORDER_SUCCESSFUL", (orderData: any) => {
         console.log("✅ Transaction Successful:", orderData);
         transak.close();
@@ -74,7 +78,6 @@ const InvoicePage: React.FC = () => {
         transak.close();
       });
 
-      transak.init();
     } catch (err) {
       console.error("Error initializing Transak:", err);
       alert("Payment system unavailable right now. Please try again.");
