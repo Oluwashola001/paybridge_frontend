@@ -133,7 +133,7 @@ const AdminDashboardPage: React.FC = () => {
             <div className="flex-1">
               <h1 className={`text-3xl sm:text-4xl lg:text-5xl font-bold mb-2 ${
                 isDarkMode
-                  ? 'bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent'
+                  ? 'bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent'
                   : 'bg-gradient-to-r from-gray-800 to-blue-600 bg-clip-text text-transparent'
               }`}>
                 Admin Dashboard
