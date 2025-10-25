@@ -238,8 +238,8 @@ const AdminDashboardPage: React.FC = () => {
                     id="amount"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    min="0.01"
-                    step="0.01"
+                    min="1"
+                    step="1"
                     className={`w-full pl-8 pr-4 py-3 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
                       isDarkMode
                         ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 hover:border-gray-500'

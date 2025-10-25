@@ -6,6 +6,12 @@ import { Transak } from "@transak/transak-sdk";
 import type { TransakConfig } from "@transak/transak-sdk";
 import '../types/transak.d.ts'; // Keep the type patch
 
+// ✅ Define size constants for responsiveness
+const MOBILE_WIDTH = '320px'; // Very narrow for small phones
+const DESKTOP_WIDTH = '450px'; 
+const DESKTOP_HEIGHT = '550px';
+const MOBILE_HEIGHT = '500px';
+
 interface Invoice {
   invoice_id: string;
   client_name: string;
@@ -27,9 +33,9 @@ const InvoicePage: React.FC = () => {
     return saved ? JSON.parse(saved) : false;
   });
 
-  // ✅ Define API and Frontend URLs using environment variables with fallbacks
+  // ✅ Define API and Frontend URLs
   const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
-  const frontendUrl = import.meta.env.VITE_FRONTEND_URL || 'https://paybridge-frontend-sooty.vercel.app';
+  const frontendUrl = 'https://paybridge-frontend-sooty.vercel.app'; 
 
   useEffect(() => {
     localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
@@ -39,7 +45,6 @@ const InvoicePage: React.FC = () => {
     const fetchInvoice = async () => {
       try {
         setLoading(true);
-        // ✅ Use apiUrl variable
         const res = await axios.get(`${apiUrl}/invoices/${invoiceId}`);
         if (res.data && res.data.invoice_id) {
           setInvoice(res.data);
@@ -54,7 +59,7 @@ const InvoicePage: React.FC = () => {
       }
     };
     fetchInvoice();
-  }, [invoiceId, apiUrl]); // Added apiUrl as dependency
+  }, [invoiceId, apiUrl]); 
 
   const handlePayment = async () => {
     if (!invoice) {
@@ -62,11 +67,15 @@ const InvoicePage: React.FC = () => {
         return;
     }
     
-    // Set processing state immediately before the network call
+    // ✅ Determine screen size dynamically
+    const isMobile = window.innerWidth < 640; 
+    const modalWidth = isMobile ? MOBILE_WIDTH : DESKTOP_WIDTH;
+    const modalHeight = isMobile ? MOBILE_HEIGHT : DESKTOP_HEIGHT;
+
     setIsProcessing(true); 
 
     try {
-      // Step 1: Fetch the key
+      // Step 1: Fetch the key (This is the line causing the CORS error in production)
       const { data } = await axios.get(`${apiUrl}/config/transak-key`);
 
       // Step 2: Define and launch Transak immediately
@@ -74,8 +83,8 @@ const InvoicePage: React.FC = () => {
         apiKey: data.apiKey,
         environment: "STAGING",
         widgetUrl: "https://global-stg.transak.com",
-        referrer: frontendUrl,
-
+        referrer: frontendUrl, // Use Vercel URL
+        
         // Core Configuration
         fiatCurrency: "USD",
         fiatAmount: parseFloat(invoice.amount),
@@ -83,18 +92,17 @@ const InvoicePage: React.FC = () => {
         walletAddress: invoice.wallet_address,
         disableWalletAddressForm: true,
         
-        // Size and Theme
-        widgetHeight: "550px", 
-        widgetWidth: "380px",
+        // ✅ Use dynamic size variables
+        widgetHeight: modalHeight, 
+        widgetWidth: modalWidth,
         
         // Event Handlers
         onSuccess: (orderData: any) => {
           console.log("✅ Transaction Successful:", orderData);
-          // navigate is client-side, so no browser block here
           navigate(`/success/${invoice.invoice_id}`); 
         },
         onCancel: () => {
-          console.log("❌ Transaction Cancelled by user.");
+          console.log("❌ Transaction Cancelled by user inside flow.");
           setIsProcessing(false);
         },
         onClose: () => {
@@ -109,14 +117,13 @@ const InvoicePage: React.FC = () => {
 
     } catch (err) {
       console.error("Error initializing Transak:", err);
-      // Fallback message for debugging
-      alert("Payment initiation failed. Please check console logs.");
+      // The network error (CORS) is caught here.
+      alert("Payment initiation failed. Please ensure the backend is running and CORS is configured.");
       setIsProcessing(false);
     }
   };
 
-  // ... (keep the rest of the component: loading, error, and return JSX) ...
-  // (JSX remains exactly the same as your previous version)
+  // ... (keep the rest of the component) ...
   if (loading) {
     return (
       <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
@@ -182,7 +189,7 @@ const InvoicePage: React.FC = () => {
       >
         {isDarkMode ? (
           <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
+            <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 001-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
           </svg>
         ) : (
           <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
