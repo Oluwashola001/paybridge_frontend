@@ -57,54 +57,64 @@ const InvoicePage: React.FC = () => {
   }, [invoiceId, apiUrl]); // Added apiUrl as dependency
 
   const handlePayment = async () => {
-    if (!invoice) return;
+    if (!invoice) {
+        setIsProcessing(false);
+        return;
+    }
 
-    let transak: Transak | null = null;
-    setIsProcessing(true);
+    // ✅ Define the URLs outside the try block
+    const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+    const frontendUrl = 'https://paybridge-frontend-sooty.vercel.app';
+    
+    // Set processing state immediately before the network call
+    setIsProcessing(true); 
 
     try {
-      // ✅ Use apiUrl variable
+      // Step 1: Fetch the key
       const { data } = await axios.get(`${apiUrl}/config/transak-key`);
 
+      // Step 2: Define and launch Transak immediately
       const config: TransakConfig = {
         apiKey: data.apiKey,
-        environment: "STAGING", // Keep as STAGING for now
+        environment: "STAGING",
         widgetUrl: "https://global-stg.transak.com",
-
-        // ✅ Updated referrer and redirectURL to use live frontendUrl
         referrer: frontendUrl,
-        redirectURL: `${frontendUrl}/success/${invoice.invoice_id}`,
 
-        // --- Properties to pre-fill the modal ---
+        // Core Configuration
         fiatCurrency: "USD",
         fiatAmount: parseFloat(invoice.amount),
         defaultCryptoCurrency: "USDC",
         walletAddress: invoice.wallet_address,
         disableWalletAddressForm: true,
-        // --- End of properties ---
-
-        widgetHeight: "550px",
+        
+        // Size and Theme
+        widgetHeight: "550px", 
         widgetWidth: "380px",
-
+        
+        // Event Handlers
         onSuccess: (orderData: any) => {
           console.log("✅ Transaction Successful:", orderData);
-          navigate(`/success/${invoice.invoice_id}`);
+          // navigate is client-side, so no browser block here
+          navigate(`/success/${invoice.invoice_id}`); 
         },
         onCancel: () => {
-          console.log("❌ Transaction Cancelled by user inside flow.");
+          console.log("❌ Transaction Cancelled by user.");
           setIsProcessing(false);
         },
         onClose: () => {
           console.log("Widget Close event received.");
           setIsProcessing(false);
         },
+        redirectURL: `${frontendUrl}/success/${invoice.invoice_id}`,
       };
 
-      transak = new Transak(config);
-      transak.init();
+      const transak = new Transak(config);
+      transak.init(); // Launch the modal now
+
     } catch (err) {
       console.error("Error initializing Transak:", err);
-      alert("Payment widget unavailable. Please try again later.");
+      // Fallback message for debugging
+      alert("Payment initiation failed. Please check console logs.");
       setIsProcessing(false);
     }
   };
