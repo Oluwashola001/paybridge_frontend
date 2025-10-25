@@ -4,10 +4,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Transak } from "@transak/transak-sdk";
 import type { TransakConfig } from "@transak/transak-sdk";
-import '../types/transak.d.ts'; // Keep the type patch
+import '../types/transak.d.ts';
 
 // ✅ Define size constants for responsiveness
-const MOBILE_WIDTH = '320px'; // Very narrow for small phones
+const MOBILE_WIDTH = '320px';
 const DESKTOP_WIDTH = '450px'; 
 const DESKTOP_HEIGHT = '550px';
 const MOBILE_HEIGHT = '500px';
@@ -67,13 +67,10 @@ const InvoicePage: React.FC = () => {
         return;
     }
     
-    // ✅ 1. Determine screen size dynamically
+    // ✅ Use the constants defined at the top
     const isMobile = window.innerWidth < 640; 
-    const modalWidth = isMobile ? '320px' : '450px';
-    const modalHeight = isMobile ? '500px' : '550px';
-
-    const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
-    const frontendUrl = 'https://paybridge-frontend-sooty.vercel.app'; 
+    const modalWidth = isMobile ? MOBILE_WIDTH : DESKTOP_WIDTH;
+    const modalHeight = isMobile ? MOBILE_HEIGHT : DESKTOP_HEIGHT;
 
     setIsProcessing(true); 
 
@@ -95,7 +92,7 @@ const InvoicePage: React.FC = () => {
         walletAddress: invoice.wallet_address,
         disableWalletAddressForm: true,
         
-        // ✅ Use dynamic size variables (now using string literals for robustness)
+        // ✅ Use the dynamic size variables
         widgetHeight: modalHeight, 
         widgetWidth: modalWidth,
         
@@ -116,7 +113,7 @@ const InvoicePage: React.FC = () => {
       };
 
       const transak = new Transak(config);
-      transak.init(); // Launch the modal now
+      transak.init();
 
     } catch (err) {
       console.error("Error initializing Transak:", err);
@@ -125,7 +122,6 @@ const InvoicePage: React.FC = () => {
     }
   };
 
-  // ... (keep the rest of the component) ...
   if (loading) {
     return (
       <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
