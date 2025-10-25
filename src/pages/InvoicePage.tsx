@@ -67,15 +67,18 @@ const InvoicePage: React.FC = () => {
         return;
     }
     
-    // ✅ Determine screen size dynamically
+    // ✅ 1. Determine screen size dynamically
     const isMobile = window.innerWidth < 640; 
-    const modalWidth = isMobile ? MOBILE_WIDTH : DESKTOP_WIDTH;
-    const modalHeight = isMobile ? MOBILE_HEIGHT : DESKTOP_HEIGHT;
+    const modalWidth = isMobile ? '320px' : '450px';
+    const modalHeight = isMobile ? '500px' : '550px';
+
+    const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+    const frontendUrl = 'https://paybridge-frontend-sooty.vercel.app'; 
 
     setIsProcessing(true); 
 
     try {
-      // Step 1: Fetch the key (This is the line causing the CORS error in production)
+      // Step 1: Fetch the key
       const { data } = await axios.get(`${apiUrl}/config/transak-key`);
 
       // Step 2: Define and launch Transak immediately
@@ -83,7 +86,7 @@ const InvoicePage: React.FC = () => {
         apiKey: data.apiKey,
         environment: "STAGING",
         widgetUrl: "https://global-stg.transak.com",
-        referrer: frontendUrl, // Use Vercel URL
+        referrer: frontendUrl, 
         
         // Core Configuration
         fiatCurrency: "USD",
@@ -92,7 +95,7 @@ const InvoicePage: React.FC = () => {
         walletAddress: invoice.wallet_address,
         disableWalletAddressForm: true,
         
-        // ✅ Use dynamic size variables
+        // ✅ Use dynamic size variables (now using string literals for robustness)
         widgetHeight: modalHeight, 
         widgetWidth: modalWidth,
         
@@ -117,7 +120,6 @@ const InvoicePage: React.FC = () => {
 
     } catch (err) {
       console.error("Error initializing Transak:", err);
-      // The network error (CORS) is caught here.
       alert("Payment initiation failed. Please ensure the backend is running and CORS is configured.");
       setIsProcessing(false);
     }
