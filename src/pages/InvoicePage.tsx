@@ -76,43 +76,24 @@ const InvoicePage: React.FC = () => {
 
       // ✅ Step 2: Different approach for mobile vs desktop
       if (isMobile) {
-        // MOBILE: Use redirect mode for better experience
-        const config: TransakConfig = {
+        // MOBILE: Direct URL redirect (bypasses modal entirely)
+        const transakParams = new URLSearchParams({
           apiKey: data.apiKey,
-          environment: "STAGING",
-          widgetUrl: "https://global-stg.transak.com",
-          referrer: frontendUrl,
-          
-          // Core Configuration
-          fiatCurrency: "USD",
-          fiatAmount: parseFloat(invoice.amount),
-          defaultCryptoCurrency: "USDC",
+          environment: 'STAGING',
+          fiatCurrency: 'USD',
+          fiatAmount: invoice.amount,
+          defaultCryptoCurrency: 'USDC',
           walletAddress: invoice.wallet_address,
-          disableWalletAddressForm: true,
-          
-          // ✅ Mobile: Full redirect mode
+          disableWalletAddressForm: 'true',
           redirectURL: `${frontendUrl}/success/${invoice.invoice_id}`,
-          
-          // Event Handlers (still needed for edge cases)
-          onSuccess: (orderData: any) => {
-            console.log("✅ Transaction Successful:", orderData);
-            navigate(`/success/${invoice.invoice_id}`); 
-          },
-          onCancel: () => {
-            console.log("❌ Transaction Cancelled by user.");
-            setIsProcessing(false);
-          },
-          onClose: () => {
-            console.log("Widget Close event received.");
-            setIsProcessing(false);
-          },
-        };
+          themeColor: '2563eb', // Blue theme
+        });
 
-        const transak = new Transak(config);
-        transak.init();
+        // Redirect to Transak's hosted page
+        window.location.href = `https://global-stg.transak.com?${transakParams.toString()}`;
         
       } else {
-        // DESKTOP: Use modal popup
+        // DESKTOP: Use modal popup via SDK
         const config: TransakConfig = {
           apiKey: data.apiKey,
           environment: "STAGING",
