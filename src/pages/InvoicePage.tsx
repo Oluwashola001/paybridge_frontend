@@ -191,7 +191,7 @@ const InvoicePage: React.FC = () => {
         ? 'bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900'
         : 'bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100'
     }`}>
-      {/* Dark Mode Toggle */}
+      {/* Dark Mode Toggle - NO BACK BUTTON */}
       <button
         onClick={() => setIsDarkMode(!isDarkMode)}
         className={`fixed top-4 right-4 sm:top-6 sm:right-6 p-3 rounded-xl transition-all duration-300 z-10 ${
