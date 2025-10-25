@@ -7,10 +7,10 @@ import type { TransakConfig } from "@transak/transak-sdk";
 import '../types/transak.d.ts';
 
 // ✅ Define size constants for responsiveness
-const MOBILE_WIDTH = '320px';
+const MOBILE_WIDTH = '100%';
 const DESKTOP_WIDTH = '450px'; 
-const DESKTOP_HEIGHT = '550px';
-const MOBILE_HEIGHT = '500px';
+const DESKTOP_HEIGHT = '650px';
+const MOBILE_HEIGHT = '90vh';
 
 interface Invoice {
   invoice_id: string;
@@ -67,7 +67,7 @@ const InvoicePage: React.FC = () => {
         return;
     }
     
-    // ✅ Use the constants defined at the top
+    // ✅ Detect mobile and set responsive dimensions
     const isMobile = window.innerWidth < 640; 
     const modalWidth = isMobile ? MOBILE_WIDTH : DESKTOP_WIDTH;
     const modalHeight = isMobile ? MOBILE_HEIGHT : DESKTOP_HEIGHT;
@@ -92,9 +92,11 @@ const InvoicePage: React.FC = () => {
         walletAddress: invoice.wallet_address,
         disableWalletAddressForm: true,
         
-        // ✅ Use the dynamic size variables
+        // ✅ Responsive sizing with mobile optimizations
         widgetHeight: modalHeight, 
         widgetWidth: modalWidth,
+        hideMenu: isMobile, // Hide menu on mobile for cleaner UI
+        isFeeCalculationHidden: false,
         
         // Event Handlers
         onSuccess: (orderData: any) => {
