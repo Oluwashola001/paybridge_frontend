@@ -29,7 +29,7 @@ const InvoicePage: React.FC = () => {
 
   // ✅ Define API and Frontend URLs using environment variables with fallbacks
   const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
-  const frontendUrl = 'https://paybridge-frontend-sooty.vercel.app'; // Your live Vercel URL
+  const frontendUrl = import.meta.env.VITE_FRONTEND_URL || 'https://paybridge-frontend-sooty.vercel.app';
 
   useEffect(() => {
     localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
@@ -61,10 +61,6 @@ const InvoicePage: React.FC = () => {
         setIsProcessing(false);
         return;
     }
-
-    // ✅ Define the URLs outside the try block
-    const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
-    const frontendUrl = 'https://paybridge-frontend-sooty.vercel.app';
     
     // Set processing state immediately before the network call
     setIsProcessing(true); 

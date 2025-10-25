@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 const App = () => {
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
     return saved ? JSON.parse(saved) : false;
   });
-  const [isVisible, setIsVisible] = useState({});
+  const [isVisible, setIsVisible] = useState<Record<string, boolean>>({});
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const observerRef = useRef(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
     localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
@@ -26,7 +26,9 @@ const App = () => {
     }, options);
 
     document.querySelectorAll('[data-reveal]').forEach(el => {
-      observerRef.current.observe(el);
+      if (observerRef.current) {
+        observerRef.current.observe(el);
+      }
     });
 
     return () => observerRef.current?.disconnect();
