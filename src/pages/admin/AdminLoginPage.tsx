@@ -15,6 +15,9 @@ const AdminLoginPage: React.FC = () => {
   });
   const navigate = useNavigate();
 
+  // ✅ Define the API base URL using the env variable
+  const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+
   useEffect(() => {
     localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
   }, [isDarkMode]);
@@ -25,7 +28,8 @@ const AdminLoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:4000/api/auth/login', {
+      // ✅ Use the apiUrl variable for the request
+      const response = await axios.post(`${apiUrl}/auth/login`, {
         username,
         password,
       });
@@ -44,18 +48,19 @@ const AdminLoginPage: React.FC = () => {
     }
   };
 
+  // ... (keep the rest of the component's return statement - the JSX part) ...
   return (
     <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 py-8 px-4 ${
-      isDarkMode 
-        ? 'bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900' 
+      isDarkMode
+        ? 'bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900'
         : 'bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100'
     }`}>
       {/* Dark Mode Toggle - Floating */}
       <button
         onClick={() => setIsDarkMode(!isDarkMode)}
         className={`fixed top-4 right-4 sm:top-6 sm:right-6 p-3 rounded-xl transition-all duration-300 z-10 ${
-          isDarkMode 
-            ? 'bg-gray-800 hover:bg-gray-700 text-yellow-400' 
+          isDarkMode
+            ? 'bg-gray-800 hover:bg-gray-700 text-yellow-400'
             : 'bg-white hover:bg-gray-100 text-gray-700 shadow-lg'
         }`}
         aria-label="Toggle dark mode"
@@ -74,8 +79,8 @@ const AdminLoginPage: React.FC = () => {
       {/* Login Card */}
       <div className="w-full max-w-md px-6">
         <div className={`p-8 sm:p-10 rounded-2xl shadow-2xl backdrop-blur-sm border transition-all duration-300 ${
-          isDarkMode 
-            ? 'bg-gray-800/50 border-gray-700' 
+          isDarkMode
+            ? 'bg-gray-800/50 border-gray-700'
             : 'bg-white/80 border-gray-100'
         }`}>
           {/* Logo/Icon Section */}
@@ -105,8 +110,8 @@ const AdminLoginPage: React.FC = () => {
           <form onSubmit={handleLogin} className="space-y-6">
             {/* Username Field */}
             <div>
-              <label 
-                htmlFor="username" 
+              <label
+                htmlFor="username"
                 className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
               >
                 Username
@@ -123,8 +128,8 @@ const AdminLoginPage: React.FC = () => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className={`w-full pl-12 pr-4 py-3 rounded-xl border shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
-                    isDarkMode 
-                      ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 hover:border-gray-500' 
+                    isDarkMode
+                      ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 hover:border-gray-500'
                       : 'bg-white border-gray-200 text-gray-900 placeholder-gray-500 hover:border-gray-300'
                   }`}
                   placeholder="Enter your username"
@@ -136,8 +141,8 @@ const AdminLoginPage: React.FC = () => {
 
             {/* Password Field */}
             <div>
-              <label 
-                htmlFor="password" 
+              <label
+                htmlFor="password"
                 className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
               >
                 Password
@@ -154,8 +159,8 @@ const AdminLoginPage: React.FC = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className={`w-full pl-12 pr-12 py-3 rounded-xl border shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
-                    isDarkMode 
-                      ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 hover:border-gray-500' 
+                    isDarkMode
+                      ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 hover:border-gray-500'
                       : 'bg-white border-gray-200 text-gray-900 placeholder-gray-500 hover:border-gray-300'
                   }`}
                   placeholder="Enter your password"
@@ -186,8 +191,8 @@ const AdminLoginPage: React.FC = () => {
             {/* Error Message */}
             {error && (
               <div className={`px-4 py-3 rounded-xl text-sm animate-in fade-in duration-200 flex items-start gap-2 ${
-                isDarkMode 
-                  ? 'bg-red-900/50 border border-red-700 text-red-200' 
+                isDarkMode
+                  ? 'bg-red-900/50 border border-red-700 text-red-200'
                   : 'bg-red-50 border border-red-200 text-red-700'
               }`}>
                 <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -202,8 +207,8 @@ const AdminLoginPage: React.FC = () => {
               type="submit"
               disabled={isLoading}
               className={`w-full py-4 px-6 rounded-xl font-semibold shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                isLoading 
-                  ? 'bg-gray-400 cursor-not-allowed' 
+                isLoading
+                  ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transform hover:-translate-y-0.5 hover:shadow-xl'
               } text-white`}
             >

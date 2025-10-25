@@ -29,6 +29,9 @@ const AdminDashboardPage: React.FC = () => {
     return saved ? JSON.parse(saved) : false;
   });
 
+  // ✅ Define the API base URL using the env variable
+  const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+
   useEffect(() => {
     localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
   }, [isDarkMode]);
@@ -37,7 +40,8 @@ const AdminDashboardPage: React.FC = () => {
     setIsLoading(true);
     setError('');
     try {
-      const response = await axios.get('http://localhost:4000/api/invoices');
+      // ✅ Use apiUrl variable
+      const response = await axios.get(`${apiUrl}/invoices`);
       setInvoices(response.data);
     } catch (err) {
       console.error('Error fetching invoices:', err);
@@ -49,7 +53,8 @@ const AdminDashboardPage: React.FC = () => {
 
   useEffect(() => {
     fetchInvoices();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiUrl]); // Added apiUrl as dependency
 
   const handleCreateInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +65,8 @@ const AdminDashboardPage: React.FC = () => {
       return;
     }
     try {
-      const response = await axios.post('http://localhost:4000/api/invoices', {
+      // ✅ Use apiUrl variable
+      const response = await axios.post(`${apiUrl}/invoices`, {
         client_name: clientName,
         description: description,
         amount: parseFloat(amount),
@@ -85,7 +91,8 @@ const AdminDashboardPage: React.FC = () => {
   const handleDeleteInvoice = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this invoice? This cannot be undone.')) {
       try {
-        const response = await axios.delete(`http://localhost:4000/api/invoices/${id}`);
+        // ✅ Use apiUrl variable
+        const response = await axios.delete(`${apiUrl}/invoices/${id}`);
         if (response.data.success) {
           fetchInvoices();
         } else {
@@ -101,7 +108,8 @@ const AdminDashboardPage: React.FC = () => {
   const handleClearHistory = async () => {
     if (window.confirm('ARE YOU ABSOLUTELY SURE you want to delete ALL invoice history? This is irreversible!')) {
       try {
-        const response = await axios.delete('http://localhost:4000/api/invoices');
+        // ✅ Use apiUrl variable
+        const response = await axios.delete(`${apiUrl}/invoices`);
         if (response.data.success) {
           fetchInvoices();
         } else {
@@ -115,15 +123,28 @@ const AdminDashboardPage: React.FC = () => {
   };
 
   const handleCopyLink = (link: string) => {
-    navigator.clipboard.writeText(link);
-    setCopiedId(link);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
+    // Use execCommand for broader compatibility, especially in iFrames
+    const textArea = document.createElement("textarea");
+    textArea.value = link;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+        document.execCommand('copy');
+        setCopiedId(link);
+        setTimeout(() => setCopiedId(null), 2000); // Reset after 2 seconds
+    } catch (err) {
+        console.error('Failed to copy link: ', err);
+        // Optionally show an error message to the user
+    }
+    document.body.removeChild(textArea);
+};
 
+
+  // ... (keep the rest of the component's return statement - the JSX part) ...
   return (
     <div className={`min-h-screen transition-colors duration-300 ${
-      isDarkMode 
-        ? 'bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900' 
+      isDarkMode
+        ? 'bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900'
         : 'bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100'
     }`}>
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
@@ -142,13 +163,13 @@ const AdminDashboardPage: React.FC = () => {
                 Create and manage your payment invoices
               </p>
             </div>
-            
+
             {/* Dark Mode Toggle */}
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
               className={`ml-4 p-3 rounded-xl transition-all duration-300 ${
-                isDarkMode 
-                  ? 'bg-gray-800 hover:bg-gray-700 text-yellow-400' 
+                isDarkMode
+                  ? 'bg-gray-800 hover:bg-gray-700 text-yellow-400'
                   : 'bg-white hover:bg-gray-100 text-gray-700 shadow-md'
               }`}
               aria-label="Toggle dark mode"
@@ -168,8 +189,8 @@ const AdminDashboardPage: React.FC = () => {
 
         {/* Create New Invoice Form */}
         <div className={`p-6 sm:p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 mb-8 border ${
-          isDarkMode 
-            ? 'bg-gray-800/50 backdrop-blur-sm border-gray-700' 
+          isDarkMode
+            ? 'bg-gray-800/50 backdrop-blur-sm border-gray-700'
             : 'bg-white/80 backdrop-blur-sm border-gray-100'
         }`}>
           <div className="flex items-center gap-3 mb-6">
@@ -195,8 +216,8 @@ const AdminDashboardPage: React.FC = () => {
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value)}
                   className={`w-full px-4 py-3 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
-                    isDarkMode 
-                      ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 hover:border-gray-500' 
+                    isDarkMode
+                      ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 hover:border-gray-500'
                       : 'bg-white border-gray-200 text-gray-900 hover:border-gray-300'
                   } border`}
                   placeholder="Enter client name"
@@ -220,8 +241,8 @@ const AdminDashboardPage: React.FC = () => {
                     min="0.01"
                     step="0.01"
                     className={`w-full pl-8 pr-4 py-3 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
-                      isDarkMode 
-                        ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 hover:border-gray-500' 
+                      isDarkMode
+                        ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 hover:border-gray-500'
                         : 'bg-white border-gray-200 text-gray-900 hover:border-gray-300'
                     } border`}
                     placeholder="0.00"
@@ -241,8 +262,8 @@ const AdminDashboardPage: React.FC = () => {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className={`w-full px-4 py-3 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
-                  isDarkMode 
-                    ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 hover:border-gray-500' 
+                  isDarkMode
+                    ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 hover:border-gray-500'
                     : 'bg-white border-gray-200 text-gray-900 hover:border-gray-300'
                 } border`}
                 placeholder="What is this invoice for?"
@@ -261,8 +282,8 @@ const AdminDashboardPage: React.FC = () => {
                 onChange={(e) => setWalletAddress(e.target.value)}
                 placeholder="0xYourWalletAddressHere"
                 className={`w-full px-4 py-3 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 font-mono text-sm ${
-                  isDarkMode 
-                    ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 hover:border-gray-500' 
+                  isDarkMode
+                    ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 hover:border-gray-500'
                     : 'bg-white border-gray-200 text-gray-900 hover:border-gray-300'
                 } border`}
                 required
@@ -271,8 +292,8 @@ const AdminDashboardPage: React.FC = () => {
 
             {formError && (
               <div className={`px-4 py-3 rounded-xl text-sm animate-in fade-in duration-200 ${
-                isDarkMode 
-                  ? 'bg-red-900/50 border border-red-700 text-red-200' 
+                isDarkMode
+                  ? 'bg-red-900/50 border border-red-700 text-red-200'
                   : 'bg-red-50 border border-red-200 text-red-700'
               }`}>
                 {formError}
@@ -281,8 +302,8 @@ const AdminDashboardPage: React.FC = () => {
 
             {newInvoiceLink && (
               <div className={`px-4 py-4 rounded-xl animate-in slide-in-from-top duration-300 ${
-                isDarkMode 
-                  ? 'bg-gradient-to-r from-green-900/50 to-emerald-900/50 border border-green-700' 
+                isDarkMode
+                  ? 'bg-gradient-to-r from-green-900/50 to-emerald-900/50 border border-green-700'
                   : 'bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200'
               }`}>
                 <div className="flex items-start gap-3">
@@ -299,8 +320,8 @@ const AdminDashboardPage: React.FC = () => {
                         readOnly
                         value={newInvoiceLink}
                         className={`flex-1 px-3 py-2 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                          isDarkMode 
-                            ? 'bg-gray-800 border border-green-700 text-gray-200' 
+                          isDarkMode
+                            ? 'bg-gray-800 border border-green-700 text-gray-200'
                             : 'bg-white border border-green-300 text-gray-700'
                         }`}
                         onClick={(e) => (e.target as HTMLInputElement).select()}
@@ -348,8 +369,8 @@ const AdminDashboardPage: React.FC = () => {
 
         {/* Invoice History */}
         <div className={`rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border overflow-hidden ${
-          isDarkMode 
-            ? 'bg-gray-800/50 backdrop-blur-sm border-gray-700' 
+          isDarkMode
+            ? 'bg-gray-800/50 backdrop-blur-sm border-gray-700'
             : 'bg-white/80 backdrop-blur-sm border-gray-100'
         }`}>
           <div className={`p-6 sm:p-8 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-100'}`}>
@@ -375,8 +396,8 @@ const AdminDashboardPage: React.FC = () => {
                 className={`px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 flex items-center gap-2 justify-center sm:justify-start ${
                   invoices.length > 0
                     ? 'bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md transform hover:-translate-y-0.5'
-                    : isDarkMode 
-                      ? 'bg-gray-700 text-gray-500 cursor-not-allowed' 
+                    : isDarkMode
+                      ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
               >
@@ -394,7 +415,7 @@ const AdminDashboardPage: React.FC = () => {
                 <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
               </div>
             )}
-            
+
             {error && (
               <div className="text-center py-12">
                 <svg className="w-12 h-12 text-red-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -446,8 +467,8 @@ const AdminDashboardPage: React.FC = () => {
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap">
                               <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                invoice.status === 'PAID' 
-                                  ? 'bg-green-100 text-green-800' 
+                                invoice.status === 'PAID'
+                                  ? 'bg-green-100 text-green-800'
                                   : 'bg-yellow-100 text-yellow-800'
                               }`}>
                                 {invoice.status}
@@ -506,8 +527,8 @@ const AdminDashboardPage: React.FC = () => {
                   ) : (
                     invoices.map((invoice) => (
                       <div key={invoice.id} className={`border rounded-xl p-5 hover:shadow-md transition-all duration-200 ${
-                        isDarkMode 
-                          ? 'bg-gradient-to-br from-gray-700 to-gray-800 border-gray-600' 
+                        isDarkMode
+                          ? 'bg-gradient-to-br from-gray-700 to-gray-800 border-gray-600'
                           : 'bg-gradient-to-br from-white to-gray-50 border-gray-200'
                       }`}>
                         <div className="flex items-start justify-between mb-3">
@@ -522,14 +543,14 @@ const AdminDashboardPage: React.FC = () => {
                             </span>
                           </div>
                           <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                            invoice.status === 'PAID' 
-                              ? 'bg-green-100 text-green-800' 
+                            invoice.status === 'PAID'
+                              ? 'bg-green-100 text-green-800'
                               : 'bg-yellow-100 text-yellow-800'
                           }`}>
                             {invoice.status}
                           </span>
                         </div>
-                        
+
                         <div className="grid grid-cols-2 gap-4 mb-4">
                           <div>
                             <p className={`text-xs font-semibold uppercase tracking-wide mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>

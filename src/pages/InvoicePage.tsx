@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Transak } from "@transak/transak-sdk";
 import type { TransakConfig } from "@transak/transak-sdk";
-import '../types/transak.d.ts';
+import '../types/transak.d.ts'; // Keep the type patch
 
 interface Invoice {
   invoice_id: string;
@@ -27,6 +27,10 @@ const InvoicePage: React.FC = () => {
     return saved ? JSON.parse(saved) : false;
   });
 
+  // ✅ Define API and Frontend URLs using environment variables with fallbacks
+  const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+  const frontendUrl = 'https://paybridge-frontend-sooty.vercel.app'; // Your live Vercel URL
+
   useEffect(() => {
     localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
   }, [isDarkMode]);
@@ -35,7 +39,8 @@ const InvoicePage: React.FC = () => {
     const fetchInvoice = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`http://localhost:4000/api/invoices/${invoiceId}`);
+        // ✅ Use apiUrl variable
+        const res = await axios.get(`${apiUrl}/invoices/${invoiceId}`);
         if (res.data && res.data.invoice_id) {
           setInvoice(res.data);
         } else {
@@ -49,7 +54,7 @@ const InvoicePage: React.FC = () => {
       }
     };
     fetchInvoice();
-  }, [invoiceId]);
+  }, [invoiceId, apiUrl]); // Added apiUrl as dependency
 
   const handlePayment = async () => {
     if (!invoice) return;
@@ -58,20 +63,29 @@ const InvoicePage: React.FC = () => {
     setIsProcessing(true);
 
     try {
-      const { data } = await axios.get("http://localhost:4000/api/config/transak-key");
+      // ✅ Use apiUrl variable
+      const { data } = await axios.get(`${apiUrl}/config/transak-key`);
 
       const config: TransakConfig = {
         apiKey: data.apiKey,
-        environment: "STAGING",
+        environment: "STAGING", // Keep as STAGING for now
         widgetUrl: "https://global-stg.transak.com",
-        referrer: window.location.origin,
+
+        // ✅ Updated referrer and redirectURL to use live frontendUrl
+        referrer: frontendUrl,
+        redirectURL: `${frontendUrl}/success/${invoice.invoice_id}`,
+
+        // --- Properties to pre-fill the modal ---
         fiatCurrency: "USD",
         fiatAmount: parseFloat(invoice.amount),
         defaultCryptoCurrency: "USDC",
         walletAddress: invoice.wallet_address,
         disableWalletAddressForm: true,
+        // --- End of properties ---
+
         widgetHeight: "550px",
         widgetWidth: "380px",
+
         onSuccess: (orderData: any) => {
           console.log("✅ Transaction Successful:", orderData);
           navigate(`/success/${invoice.invoice_id}`);
@@ -81,10 +95,9 @@ const InvoicePage: React.FC = () => {
           setIsProcessing(false);
         },
         onClose: () => {
-          console.log("Widget Close event received. Modal should close.");
+          console.log("Widget Close event received.");
           setIsProcessing(false);
         },
-        redirectURL: `${window.location.origin}/success/${invoice.invoice_id}`,
       };
 
       transak = new Transak(config);
@@ -96,11 +109,13 @@ const InvoicePage: React.FC = () => {
     }
   };
 
+  // ... (keep the rest of the component: loading, error, and return JSX) ...
+  // (JSX remains exactly the same as your previous version)
   if (loading) {
     return (
       <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
-        isDarkMode 
-          ? 'bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900' 
+        isDarkMode
+          ? 'bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900'
           : 'bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100'
       }`}>
         <div className="text-center">
@@ -116,8 +131,8 @@ const InvoicePage: React.FC = () => {
   if (error || !invoice) {
     return (
       <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 py-8 px-4 ${
-        isDarkMode 
-          ? 'bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900' 
+        isDarkMode
+          ? 'bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900'
           : 'bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100'
       }`}>
         <div className="text-center">
@@ -145,16 +160,16 @@ const InvoicePage: React.FC = () => {
 
   return (
     <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 py-8 px-4 ${
-      isDarkMode 
-        ? 'bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900' 
+      isDarkMode
+        ? 'bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900'
         : 'bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100'
     }`}>
       {/* Dark Mode Toggle */}
       <button
         onClick={() => setIsDarkMode(!isDarkMode)}
         className={`fixed top-4 right-4 sm:top-6 sm:right-6 p-3 rounded-xl transition-all duration-300 z-10 ${
-          isDarkMode 
-            ? 'bg-gray-800 hover:bg-gray-700 text-yellow-400' 
+          isDarkMode
+            ? 'bg-gray-800 hover:bg-gray-700 text-yellow-400'
             : 'bg-white hover:bg-gray-100 text-gray-700 shadow-lg'
         }`}
         aria-label="Toggle dark mode"
@@ -173,8 +188,8 @@ const InvoicePage: React.FC = () => {
       {/* Invoice Card */}
       <div className="w-full max-w-lg">
         <div className={`p-8 sm:p-10 rounded-2xl shadow-2xl backdrop-blur-sm border transition-all duration-300 ${
-          isDarkMode 
-            ? 'bg-gray-800/50 border-gray-700' 
+          isDarkMode
+            ? 'bg-gray-800/50 border-gray-700'
             : 'bg-white/80 border-gray-100'
         }`}>
           {/* Header with Icon */}
@@ -245,8 +260,8 @@ const InvoicePage: React.FC = () => {
 
             {/* Amount - Highlighted */}
             <div className={`p-6 rounded-xl border-2 ${
-              isDarkMode 
-                ? 'bg-gradient-to-br from-blue-900/30 to-blue-800/30 border-blue-700' 
+              isDarkMode
+                ? 'bg-gradient-to-br from-blue-900/30 to-blue-800/30 border-blue-700'
                 : 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200'
             }`}>
               <div className="flex items-center justify-between">
@@ -275,8 +290,8 @@ const InvoicePage: React.FC = () => {
                 Payment Status
               </span>
               <span className={`px-4 py-2 rounded-full text-sm font-semibold ${
-                invoice.status === 'PAID' 
-                  ? 'bg-green-100 text-green-800' 
+                invoice.status === 'PAID'
+                  ? 'bg-green-100 text-green-800'
                   : 'bg-yellow-100 text-yellow-800'
               }`}>
                 {invoice.status}
@@ -290,8 +305,8 @@ const InvoicePage: React.FC = () => {
               onClick={handlePayment}
               disabled={isProcessing}
               className={`w-full py-4 px-6 rounded-xl font-semibold shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                isProcessing 
-                  ? 'bg-gray-400 cursor-not-allowed' 
+                isProcessing
+                  ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transform hover:-translate-y-0.5 hover:shadow-xl'
               } text-white`}
             >
@@ -316,8 +331,8 @@ const InvoicePage: React.FC = () => {
 
           {invoice.status === 'PAID' && (
             <div className={`p-4 rounded-xl flex items-center gap-3 ${
-              isDarkMode 
-                ? 'bg-green-900/30 border border-green-700' 
+              isDarkMode
+                ? 'bg-green-900/30 border border-green-700'
                 : 'bg-green-50 border border-green-200'
             }`}>
               <svg className="w-6 h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
