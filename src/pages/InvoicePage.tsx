@@ -6,11 +6,9 @@ import { Transak } from "@transak/transak-sdk";
 import type { TransakConfig } from "@transak/transak-sdk";
 import '../types/transak.d.ts';
 
-// ✅ Define size constants for responsiveness
-const MOBILE_WIDTH = '100%';
+// ✅ Define size constants for desktop modal
 const DESKTOP_WIDTH = '450px'; 
 const DESKTOP_HEIGHT = '650px';
-const MOBILE_HEIGHT = '90vh';
 
 interface Invoice {
   invoice_id: string;
@@ -67,10 +65,8 @@ const InvoicePage: React.FC = () => {
         return;
     }
     
-    // ✅ Detect mobile and set responsive dimensions
+    // ✅ Detect mobile for different strategies
     const isMobile = window.innerWidth < 640; 
-    const modalWidth = isMobile ? MOBILE_WIDTH : DESKTOP_WIDTH;
-    const modalHeight = isMobile ? MOBILE_HEIGHT : DESKTOP_HEIGHT;
 
     setIsProcessing(true); 
 
@@ -78,44 +74,81 @@ const InvoicePage: React.FC = () => {
       // Step 1: Fetch the key
       const { data } = await axios.get(`${apiUrl}/config/transak-key`);
 
-      // Step 2: Define and launch Transak immediately
-      const config: TransakConfig = {
-        apiKey: data.apiKey,
-        environment: "STAGING",
-        widgetUrl: "https://global-stg.transak.com",
-        referrer: frontendUrl, 
-        
-        // Core Configuration
-        fiatCurrency: "USD",
-        fiatAmount: parseFloat(invoice.amount),
-        defaultCryptoCurrency: "USDC",
-        walletAddress: invoice.wallet_address,
-        disableWalletAddressForm: true,
-        
-        // ✅ Responsive sizing with mobile optimizations
-        widgetHeight: modalHeight, 
-        widgetWidth: modalWidth,
-        hideMenu: isMobile, // Hide menu on mobile for cleaner UI
-        isFeeCalculationHidden: false,
-        
-        // Event Handlers
-        onSuccess: (orderData: any) => {
-          console.log("✅ Transaction Successful:", orderData);
-          navigate(`/success/${invoice.invoice_id}`); 
-        },
-        onCancel: () => {
-          console.log("❌ Transaction Cancelled by user inside flow.");
-          setIsProcessing(false);
-        },
-        onClose: () => {
-          console.log("Widget Close event received.");
-          setIsProcessing(false);
-        },
-        redirectURL: `${frontendUrl}/success/${invoice.invoice_id}`,
-      };
+      // ✅ Step 2: Different approach for mobile vs desktop
+      if (isMobile) {
+        // MOBILE: Use redirect mode for better experience
+        const config: TransakConfig = {
+          apiKey: data.apiKey,
+          environment: "STAGING",
+          widgetUrl: "https://global-stg.transak.com",
+          referrer: frontendUrl,
+          
+          // Core Configuration
+          fiatCurrency: "USD",
+          fiatAmount: parseFloat(invoice.amount),
+          defaultCryptoCurrency: "USDC",
+          walletAddress: invoice.wallet_address,
+          disableWalletAddressForm: true,
+          
+          // ✅ Mobile: Full redirect mode
+          redirectURL: `${frontendUrl}/success/${invoice.invoice_id}`,
+          
+          // Event Handlers (still needed for edge cases)
+          onSuccess: (orderData: any) => {
+            console.log("✅ Transaction Successful:", orderData);
+            navigate(`/success/${invoice.invoice_id}`); 
+          },
+          onCancel: () => {
+            console.log("❌ Transaction Cancelled by user.");
+            setIsProcessing(false);
+          },
+          onClose: () => {
+            console.log("Widget Close event received.");
+            setIsProcessing(false);
+          },
+        };
 
-      const transak = new Transak(config);
-      transak.init();
+        const transak = new Transak(config);
+        transak.init();
+        
+      } else {
+        // DESKTOP: Use modal popup
+        const config: TransakConfig = {
+          apiKey: data.apiKey,
+          environment: "STAGING",
+          widgetUrl: "https://global-stg.transak.com",
+          referrer: frontendUrl,
+          
+          // Core Configuration
+          fiatCurrency: "USD",
+          fiatAmount: parseFloat(invoice.amount),
+          defaultCryptoCurrency: "USDC",
+          walletAddress: invoice.wallet_address,
+          disableWalletAddressForm: true,
+          
+          // ✅ Desktop: Modal sizing
+          widgetHeight: DESKTOP_HEIGHT, 
+          widgetWidth: DESKTOP_WIDTH,
+          
+          // Event Handlers
+          onSuccess: (orderData: any) => {
+            console.log("✅ Transaction Successful:", orderData);
+            navigate(`/success/${invoice.invoice_id}`); 
+          },
+          onCancel: () => {
+            console.log("❌ Transaction Cancelled by user.");
+            setIsProcessing(false);
+          },
+          onClose: () => {
+            console.log("Widget Close event received.");
+            setIsProcessing(false);
+          },
+          redirectURL: `${frontendUrl}/success/${invoice.invoice_id}`,
+        };
+
+        const transak = new Transak(config);
+        transak.init();
+      }
 
     } catch (err) {
       console.error("Error initializing Transak:", err);
