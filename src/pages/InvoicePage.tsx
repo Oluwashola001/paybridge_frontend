@@ -1,109 +1,35 @@
 // src/pages/InvoicePage.tsx
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
+
+// ❌ We no longer import anything from 'flutterwave-react-v3'
+// ❌ We no longer import anything from '@transak/transak-sdk'
+
+// ✅ We must declare the FlutterwaveCheckout function to TypeScript
+// This tells TypeScript that this function exists globally (from the script in index.html)
+declare global {
+  interface Window {
+    FlutterwaveCheckout: (options: any) => void;
+  }
+}
 
 interface Invoice {
   invoice_id: string;
   client_name: string;
   description: string;
-  amount: string;
+  amount: string; // Keep as string
   wallet_address: string;
   status: string;
 }
 
-// Separate component to handle Flutterwave logic ONLY when data is ready
-const FlutterwavePaymentButton: React.FC<{ invoice: Invoice; publicKey: string }> = ({ invoice, publicKey }) => {
-  const navigate = useNavigate();
-  const [isProcessing, setIsProcessing] = useState(false);
-  const { invoiceId } = useParams();
-
-  // Ensure config uses non-null props
-  const config = {
-    public_key: publicKey,
-    tx_ref: invoice.invoice_id,
-    amount: parseFloat(invoice.amount),
-    currency: 'USD',
-    payment_options: 'card,ussd,banktransfer',
-    customer: {
-      email: 'customer-email@example.com',
-      phone_number: '08000000000',
-      name: invoice.client_name,
-    },
-    customizations: {
-      title: 'PayBridge Invoice Payment',
-      description: invoice.description,
-      logo: `${window.location.origin}/logo-paybridge.png`,
-    },
-  };
-
-  const handleFlutterwavePayment = useFlutterwave(config);
-
-  const handlePaymentClick = useCallback(() => {
-    // Basic check still good
-    if (!invoice || !publicKey) {
-      alert("Payment details missing.");
-      return;
-    }
-    setIsProcessing(true);
-
-    handleFlutterwavePayment({
-      callback: (response) => {
-        console.log("Flutterwave Payment Callback:", response);
-        if (response.status === 'successful' || response.status === 'completed') {
-          console.log("Payment successful callback.");
-          navigate(`/success/${invoiceId}`);
-        } else {
-          console.warn("Payment callback status not successful:", response.status);
-          alert(`Payment ${response.status}. Please try again.`);
-          setIsProcessing(false);
-        }
-        closePaymentModal();
-      },
-      onClose: () => {
-        console.log('Flutterwave modal closed by user.');
-        setIsProcessing(false);
-      },
-    });
-  }, [handleFlutterwavePayment, invoice, publicKey, navigate, invoiceId]);
-
-  return (
-    <button
-      onClick={handlePaymentClick}
-      disabled={isProcessing}
-      className={`w-full py-4 px-6 rounded-xl font-semibold shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-        isProcessing
-          ? 'bg-gray-400 cursor-not-allowed'
-          : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transform hover:-translate-y-0.5 hover:shadow-xl'
-      } text-white`}
-    >
-      {isProcessing ? (
-         <span className="flex items-center justify-center gap-2">
-           <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-           </svg>
-           Processing...
-         </span>
-      ) : (
-         <span className="flex items-center justify-center gap-2">
-           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
-           Pay Now with Flutterwave
-         </span>
-      )}
-    </button>
-  );
-};
-
-
-// Main Invoice Page Component
 const InvoicePage: React.FC = () => {
   const { invoiceId } = useParams();
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
     return saved ? JSON.parse(saved) : false;
@@ -111,6 +37,7 @@ const InvoicePage: React.FC = () => {
   const [flutterwavePublicKey, setFlutterwavePublicKey] = useState('');
 
   const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+  const frontendUrl = 'https://paybridge-frontend-sooty.vercel.app';
 
   useEffect(() => {
     localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
@@ -163,6 +90,51 @@ const InvoicePage: React.FC = () => {
   }, [invoiceId, apiUrl]);
 
 
+  // ✅ This is the new handlePayment function using the script
+  const handlePayment = () => {
+    if (!invoice || !flutterwavePublicKey) {
+      alert("Payment details or configuration missing.");
+      return;
+    }
+    
+    setIsProcessing(true);
+
+    window.FlutterwaveCheckout({
+      public_key: flutterwavePublicKey,
+      tx_ref: invoice.invoice_id,
+      amount: parseFloat(invoice.amount),
+      currency: "USD",
+      payment_options: "card,ussd,banktransfer",
+      // redirect_url: `${frontendUrl}/success/${invoiceId}`, // Webhook is more reliable
+      customer: {
+        email: 'customer-email@example.com', // Placeholder
+        phone_number: '08000000000', // Placeholder
+        name: invoice.client_name,
+      },
+      customizations: {
+        title: 'PayBridge Invoice Payment',
+        description: invoice.description,
+        logo: `${frontendUrl}/logo-paybridge.png`, // Use your logo URL
+      },
+      callback: function (response) {
+        console.log("Flutterwave Payment Successful:", response);
+        // Here you should ideally verify the transaction on your backend
+        // For now, we'll navigate directly on success
+        if (response.status === 'successful' || response.status === 'completed') {
+            navigate(`/success/${invoiceId}`);
+        } else {
+            alert('Payment was not successful. Please try again.');
+            setIsProcessing(false);
+        }
+      },
+      onclose: function () {
+        console.log('Flutterwave modal closed by user.');
+        setIsProcessing(false); // Reset button when modal is closed
+      },
+    });
+  };
+
+  
   // --- JSX Rendering Logic ---
   if (loading) {
     return (
@@ -212,7 +184,7 @@ const InvoicePage: React.FC = () => {
     );
   }
 
-  // ✅ FULL JSX RETURN BLOCK RESTORED
+  // ✅ FULL JSX RETURN BLOCK (Restored)
   return (
     <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 py-8 px-4 ${
       isDarkMode
@@ -262,29 +234,24 @@ const InvoicePage: React.FC = () => {
 
           {/* Invoice Info */}
            <div className="space-y-5 mb-8">
-             {/* Invoice ID */}
              <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
-                {/* Simplified JSX structure */}
                 <label className={`text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Invoice ID</label>
                  <p className={`font-mono text-sm mt-1 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
                    {invoice.invoice_id}
                  </p>
              </div>
-             {/* Client Name */}
              <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
                  <label className={`text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Client</label>
                 <p className={`text-lg font-semibold mt-1 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
                   {invoice.client_name}
                 </p>
              </div>
-              {/* Description */}
              <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
                  <label className={`text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Description</label>
                  <p className={`mt-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                    {invoice.description}
                  </p>
              </div>
-              {/* Amount - Highlighted */}
              <div className={`p-6 rounded-xl border-2 ${
                isDarkMode
                  ? 'bg-gradient-to-br from-blue-900/30 to-blue-800/30 border-blue-700'
@@ -295,7 +262,6 @@ const InvoicePage: React.FC = () => {
                     ${invoice.amount} USD
                   </p>
              </div>
-              {/* Status Badge */}
              <div className="flex items-center justify-between">
                    <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Payment Status</span>
                    <span className={`px-4 py-2 rounded-full text-sm font-semibold ${
@@ -308,19 +274,48 @@ const InvoicePage: React.FC = () => {
              </div>
            </div>
 
-
           {/* Payment Button Area */}
           {invoice.status !== 'PAID' && (
-             // Render the button component only when invoice and key are valid
-             <FlutterwavePaymentButton invoice={invoice} publicKey={flutterwavePublicKey} />
+             <button
+              onClick={handlePayment} // ✅ Use the new handlePayment function
+              disabled={isProcessing || !flutterwavePublicKey}
+              className={`w-full py-4 px-6 rounded-xl font-semibold shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                isProcessing || !flutterwavePublicKey
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transform hover:-translate-y-0.5 hover:shadow-xl'
+              } text-white`}
+            >
+              {isProcessing ? (
+                 <span className="flex items-center justify-center gap-2">
+                   <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                   </svg>
+                   Processing...
+                 </span>
+              ) : (
+                 <span className="flex items-center justify-center gap-2">
+                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                   Pay Now with Flutterwave
+                 </span>
+              )}
+            </button>
           )}
 
           {invoice.status === 'PAID' && (
-             <div className={`p-4 rounded-xl flex items-center gap-3 ${isDarkMode ? 'bg-green-900/30 border border-green-700' : 'bg-green-50 border border-green-200'}`}> Payment Completed </div>
+             <div className={`p-4 rounded-xl flex items-center gap-3 ${isDarkMode ? 'bg-green-900/30 border border-green-700' : 'bg-green-50 border border-green-200'}`}> 
+                <svg className="w-6 h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <p className={`font-semibold ${isDarkMode ? 'text-green-400' : 'text-green-800'}`}>Payment Completed</p>
+             </div>
           )}
 
           {/* Security Notice */}
           <div className={`mt-6 p-4 rounded-xl flex items-start gap-3 ${isDarkMode ? 'bg-gray-700/30' : 'bg-gray-50'}`}>
+              <svg className={`w-5 h-5 flex-shrink-0 mt-0.5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
               <div>
                  <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Secure Payment</p>
                  <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -335,8 +330,8 @@ const InvoicePage: React.FC = () => {
           <p>Powered by Flutterwave • Secure Card Payments</p>
         </div>
       </div>
-    </div> // Closing div for main container
-  ); // Closing parenthesis for return
-}; // Closing brace for InvoicePage component
+    </div>
+  );
+};
 
-export default InvoicePage; // Export statement
+export default InvoicePage;
