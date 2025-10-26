@@ -129,10 +129,10 @@ const InvoicePage: React.FC = () => {
     tx_ref: invoice.invoice_id,
     amount: parseFloat(invoice.amount),
     currency: "USD",
-    payment_options: "card,account,banktransfer", // ✅ These work with USD
+    payment_options: "card,googlepay,applepay", // All options
     customer: {
-      email: 'customer@example.com',
-      phone_number: '08012345678',
+      email: 'yourbusiness@gmail.com', // Your business email
+      phone_number: '+1-555-000-0000', // US format placeholder
       name: invoice.client_name,
     },
     customizations: {
@@ -144,9 +144,9 @@ const InvoicePage: React.FC = () => {
       console.log("Flutterwave Payment Response:", response);
       setIsProcessing(false);
       if (response.status === 'successful' || response.status === 'completed') {
-          navigate(`/success/${invoiceId}`);
+        navigate(`/success/${invoiceId}`);
       } else {
-          alert('Payment was not successful.');
+        alert('Payment was not successful. Please try again.');
       }
     },
     onclose: function () {
