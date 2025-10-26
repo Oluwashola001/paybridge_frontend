@@ -127,36 +127,35 @@ const InvoicePage: React.FC = () => {
     setIsProcessing(true);
 
     window.FlutterwaveCheckout({
-      public_key: flutterwavePublicKey,
-      tx_ref: invoice.invoice_id,
-      amount: parseFloat(invoice.amount),
-      currency: "USD",
-      payment_options: "card,ussd,banktransfer",
-      customer: {
-        email: 'customer-email@example.com',
-        phone_number: '08000000000',
-        name: invoice.client_name,
-      },
-      customizations: {
-        title: 'PayBridge Invoice Payment',
-        description: invoice.description,
-        logo: `${frontendUrl}/logo-paybridge.png`,
-      },
-      callback: function (response: any) {
-        console.log("Flutterwave Payment Successful:", response);
-        if (response.status === 'successful' || response.status === 'completed') {
-            navigate(`/success/${invoiceId}`);
-        } else {
-            alert('Payment was not successful. Please try again.');
-            setIsProcessing(false);
-        }
-      },
-      onclose: function () {
-        console.log('Flutterwave modal closed by user.');
+  public_key: flutterwavePublicKey.trim(),
+  tx_ref: invoice.invoice_id,
+  amount: parseFloat(invoice.amount),
+  currency: "USD",
+  payment_options: "card,applepay,googlepay,paypal", // ✅ Best for international
+  customer: {
+    email: 'customer-email@example.com',
+    phone_number: '08000000000',
+    name: invoice.client_name,
+  },
+  customizations: {
+    title: 'PayBridge Invoice Payment',
+    description: invoice.description,
+    logo: `${frontendUrl}/logo-paybridge.png`,
+  },
+  callback: function (response: any) {
+    console.log("Flutterwave Payment Successful:", response);
+    if (response.status === 'successful' || response.status === 'completed') {
+        navigate(`/success/${invoiceId}`);
+    } else {
+        alert('Payment was not successful. Please try again.');
         setIsProcessing(false);
-      },
-    });
-  };
+    }
+  },
+  onclose: function () {
+    console.log('Flutterwave modal closed by user.');
+    setIsProcessing(false);
+  },
+});
 
   
   // --- JSX Rendering Logic ---
