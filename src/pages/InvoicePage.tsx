@@ -2,9 +2,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-// ❌ No imports from 'flutterwave-react-v3' needed
 
-// ✅ We must declare the FlutterwaveCheckout function to TypeScript
+// We declare the global function so TypeScript doesn't complain
 declare global {
   interface Window {
     FlutterwaveCheckout: (options: any) => void;
@@ -15,7 +14,7 @@ interface Invoice {
   invoice_id: string;
   client_name: string;
   description: string;
-  amount: string;
+  amount: string; 
   wallet_address: string;
   status: string;
 }
@@ -87,22 +86,29 @@ const InvoicePage: React.FC = () => {
   }, [invoiceId, apiUrl]);
 
 
-  // ✅ This is the new handlePayment function using the script
   const handlePayment = () => {
     if (!invoice || !flutterwavePublicKey) {
       alert("Payment details or configuration missing.");
       return;
     }
+
+    // ✅ FIX: Check if the Flutterwave script has loaded
+    if (typeof window.FlutterwaveCheckout !== 'function') {
+      console.error("Flutterwave script has not loaded!");
+      alert("Payment service is not ready. Please refresh the page and try again.");
+      setIsProcessing(false); // Reset button if it was clicked
+      return; // Stop execution
+    }
     
     setIsProcessing(true);
 
+    // Now it's safe to call the function
     window.FlutterwaveCheckout({
       public_key: flutterwavePublicKey,
       tx_ref: invoice.invoice_id,
       amount: parseFloat(invoice.amount),
       currency: "USD",
       payment_options: "card,ussd,banktransfer",
-      // redirect_url: `${frontendUrl}/success/${invoiceId}`, // Webhook is more reliable
       customer: {
         email: 'customer-email@example.com', // Placeholder
         phone_number: '08000000000', // Placeholder
@@ -113,8 +119,6 @@ const InvoicePage: React.FC = () => {
         description: invoice.description,
         logo: `${frontendUrl}/logo-paybridge.png`,
       },
-
-      // ✅ FIX: Added 'any' type to the response parameter to fix TS7006
       callback: function (response: any) {
         console.log("Flutterwave Payment Successful:", response);
         if (response.status === 'successful' || response.status === 'completed') {
@@ -133,6 +137,7 @@ const InvoicePage: React.FC = () => {
 
   
   // --- JSX Rendering Logic ---
+  // (All the JSX for loading, error, and the page remains the same)
   if (loading) {
     return (
       <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
