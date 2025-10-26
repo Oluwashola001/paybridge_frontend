@@ -14,34 +14,32 @@ interface Invoice {
 }
 
 // Separate component to handle Flutterwave logic ONLY when data is ready
-// Props are guaranteed non-null here because of parent checks
 const FlutterwavePaymentButton: React.FC<{ invoice: Invoice; publicKey: string }> = ({ invoice, publicKey }) => {
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // Use navigate here
   const [isProcessing, setIsProcessing] = useState(false);
-  const { invoiceId } = useParams(); // Get invoiceId again here if needed for navigation
+  const { invoiceId } = useParams();
 
   const config = {
-    public_key: publicKey, // Use passed publicKey
+    public_key: publicKey,
     tx_ref: invoice.invoice_id,
-    amount: parseFloat(invoice.amount), // Ensure amount is number
+    amount: parseFloat(invoice.amount),
     currency: 'USD',
     payment_options: 'card,ussd,banktransfer',
     customer: {
-      email: 'customer-email@example.com', // Placeholder
-      phone_number: '08000000000', // Placeholder
+      email: 'customer-email@example.com',
+      phone_number: '08000000000', // Placeholder required by types
       name: invoice.client_name,
     },
     customizations: {
       title: 'PayBridge Invoice Payment',
       description: invoice.description,
-      logo: `${window.location.origin}/logo-paybridge.png`, // Use window.location.origin for base URL
+      logo: `${window.location.origin}/logo-paybridge.png`,
     },
   };
 
   const handleFlutterwavePayment = useFlutterwave(config);
 
   const handlePaymentClick = useCallback(() => {
-    // Basic check, though props should be valid here
     if (!invoice || !publicKey) {
       alert("Payment details missing.");
       return;
@@ -53,7 +51,7 @@ const FlutterwavePaymentButton: React.FC<{ invoice: Invoice; publicKey: string }
         console.log("Flutterwave Payment Callback:", response);
         if (response.status === 'successful' || response.status === 'completed') {
           console.log("Payment successful callback.");
-          navigate(`/success/${invoiceId}`); // Use invoiceId from useParams
+          navigate(`/success/${invoiceId}`);
         } else {
           console.warn("Payment callback status not successful:", response.status);
           alert(`Payment ${response.status}. Please try again.`);
@@ -66,7 +64,7 @@ const FlutterwavePaymentButton: React.FC<{ invoice: Invoice; publicKey: string }
         setIsProcessing(false);
       },
     });
-  }, [handleFlutterwavePayment, invoice, publicKey, navigate, invoiceId]); // Added dependencies
+  }, [handleFlutterwavePayment, invoice, publicKey, navigate, invoiceId]);
 
   return (
     <button
@@ -94,8 +92,7 @@ const FlutterwavePaymentButton: React.FC<{ invoice: Invoice; publicKey: string }
       )}
     </button>
   );
-};
-
+}; // ✅ Closing brace for FlutterwavePaymentButton
 
 // Main Invoice Page Component
 const InvoicePage: React.FC = () => {
@@ -124,7 +121,6 @@ const InvoicePage: React.FC = () => {
         setLoading(true);
         setError("");
 
-        // Fetch Invoice Data
         const invoiceRes = await axios.get(`${apiUrl}/invoices/${invoiceId}`);
         if (!isMounted) return;
         if (invoiceRes.data && invoiceRes.data.invoice_id) {
@@ -135,7 +131,6 @@ const InvoicePage: React.FC = () => {
           return;
         }
 
-        // Fetch Flutterwave Public Key
         try {
             const keyRes = await axios.get(`${apiUrl}/config/flutterwave-key`);
             if (!isMounted) return;
@@ -149,6 +144,8 @@ const InvoicePage: React.FC = () => {
              if (!isMounted) return;
              console.error("Error fetching Flutterwave key:", keyErr);
              setError("Payment configuration error.");
+             setLoading(false); // Also set loading false here
+             return;
         }
 
       } catch (err) {
@@ -214,7 +211,7 @@ const InvoicePage: React.FC = () => {
     );
   }
 
-  // ✅ FIX 2: Restored main return block and explicit check for invoice
+  // ✅ FULL JSX RETURN BLOCK RESTORED
   return (
     <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 py-8 px-4 ${
       isDarkMode
@@ -307,7 +304,7 @@ const InvoicePage: React.FC = () => {
 
           {/* Payment Button Area */}
           {invoice.status !== 'PAID' && (
-             // ✅ Render the dedicated button component only when ready and invoice is not null
+             // Render the button component only when invoice and key are valid
              <FlutterwavePaymentButton invoice={invoice} publicKey={flutterwavePublicKey} />
           )}
 
@@ -331,8 +328,8 @@ const InvoicePage: React.FC = () => {
           <p>Powered by Flutterwave • Secure Card Payments</p>
         </div>
       </div>
-    </div>
-  );
-}; // ✅ Added missing closing brace for component
+    </div> // ✅ Closing div for main container
+  ); // ✅ Closing parenthesis for return
+}; // ✅ Closing brace for InvoicePage component
 
-export default InvoicePage;
+export default InvoicePage; // ✅ Export statement
