@@ -117,14 +117,8 @@ const InvoicePage: React.FC = () => {
 
 
   const handlePayment = () => {
-  console.log("=== Payment Debug Info ===");
-  console.log("Invoice:", invoice);
-  console.log("Public Key:", flutterwavePublicKey);
-  console.log("FlutterwaveCheckout available:", typeof window.FlutterwaveCheckout);
-  
   if (!invoice || !flutterwavePublicKey || typeof window.FlutterwaveCheckout !== 'function') {
     alert("Payment service is not ready. Please refresh the page and try again.");
-    console.error("Payment attempt before resources were ready.");
     return;
   }
   
@@ -134,11 +128,11 @@ const InvoicePage: React.FC = () => {
     public_key: flutterwavePublicKey.trim(),
     tx_ref: invoice.invoice_id,
     amount: parseFloat(invoice.amount),
-    currency: "USD",
-    payment_options: "card,googlepay,banktransfer", // ✅ Make sure this line has proper quotes
+    currency: "NGN", // ⚠️ Try NGN first to test sidebar
+    payment_options: "card,ussd,banktransfer", // Nigerian options show sidebar reliably
     customer: {
-      email: 'customer-email@example.com',
-      phone_number: '08000000000',
+      email: 'customer@example.com',
+      phone_number: '08012345678',
       name: invoice.client_name,
     },
     customizations: {
@@ -147,16 +141,16 @@ const InvoicePage: React.FC = () => {
       logo: `${frontendUrl}/logo-paybridge.png`,
     },
     callback: function (response: any) {
-      console.log("Flutterwave Payment Successful:", response);
+      console.log("Flutterwave Payment Response:", response);
+      setIsProcessing(false);
       if (response.status === 'successful' || response.status === 'completed') {
           navigate(`/success/${invoiceId}`);
       } else {
           alert('Payment was not successful. Please try again.');
-          setIsProcessing(false);
       }
     },
     onclose: function () {
-      console.log('Flutterwave modal closed by user.');
+      console.log('Flutterwave modal closed.');
       setIsProcessing(false);
     },
   });
