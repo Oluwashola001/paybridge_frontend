@@ -128,8 +128,8 @@ const InvoicePage: React.FC = () => {
     public_key: flutterwavePublicKey.trim(),
     tx_ref: invoice.invoice_id,
     amount: parseFloat(invoice.amount),
-    currency: "NGN", // ⚠️ Try NGN first to test sidebar
-    payment_options: "card,ussd,banktransfer", // Nigerian options show sidebar reliably
+    currency: "USD",
+    payment_options: "card,account,banktransfer", // ✅ These work with USD
     customer: {
       email: 'customer@example.com',
       phone_number: '08012345678',
@@ -146,7 +146,7 @@ const InvoicePage: React.FC = () => {
       if (response.status === 'successful' || response.status === 'completed') {
           navigate(`/success/${invoiceId}`);
       } else {
-          alert('Payment was not successful. Please try again.');
+          alert('Payment was not successful.');
       }
     },
     onclose: function () {
