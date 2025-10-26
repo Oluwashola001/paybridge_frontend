@@ -15,10 +15,11 @@ interface Invoice {
 
 // Separate component to handle Flutterwave logic ONLY when data is ready
 const FlutterwavePaymentButton: React.FC<{ invoice: Invoice; publicKey: string }> = ({ invoice, publicKey }) => {
-  const navigate = useNavigate(); // Use navigate here
+  const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const { invoiceId } = useParams();
 
+  // Ensure config uses non-null props
   const config = {
     public_key: publicKey,
     tx_ref: invoice.invoice_id,
@@ -27,7 +28,7 @@ const FlutterwavePaymentButton: React.FC<{ invoice: Invoice; publicKey: string }
     payment_options: 'card,ussd,banktransfer',
     customer: {
       email: 'customer-email@example.com',
-      phone_number: '08000000000', // Placeholder required by types
+      phone_number: '08000000000',
       name: invoice.client_name,
     },
     customizations: {
@@ -40,6 +41,7 @@ const FlutterwavePaymentButton: React.FC<{ invoice: Invoice; publicKey: string }
   const handleFlutterwavePayment = useFlutterwave(config);
 
   const handlePaymentClick = useCallback(() => {
+    // Basic check still good
     if (!invoice || !publicKey) {
       alert("Payment details missing.");
       return;
@@ -92,12 +94,13 @@ const FlutterwavePaymentButton: React.FC<{ invoice: Invoice; publicKey: string }
       )}
     </button>
   );
-}; // ✅ Closing brace for FlutterwavePaymentButton
+};
+
 
 // Main Invoice Page Component
 const InvoicePage: React.FC = () => {
   const { invoiceId } = useParams();
-  const navigate = useNavigate(); // Keep navigate for error page redirect
+  const navigate = useNavigate();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -127,8 +130,7 @@ const InvoicePage: React.FC = () => {
           setInvoice(invoiceRes.data);
         } else {
           setError("Invoice not found");
-          setLoading(false);
-          return;
+          setLoading(false); return;
         }
 
         try {
@@ -144,8 +146,7 @@ const InvoicePage: React.FC = () => {
              if (!isMounted) return;
              console.error("Error fetching Flutterwave key:", keyErr);
              setError("Payment configuration error.");
-             setLoading(false); // Also set loading false here
-             return;
+             setLoading(false); return;
         }
 
       } catch (err) {
@@ -263,19 +264,23 @@ const InvoicePage: React.FC = () => {
            <div className="space-y-5 mb-8">
              {/* Invoice ID */}
              <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
-                 <p className={`font-mono text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-                   {invoice.invoice_id} {/* Safe to access invoice here */}
+                {/* Simplified JSX structure */}
+                <label className={`text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Invoice ID</label>
+                 <p className={`font-mono text-sm mt-1 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                   {invoice.invoice_id}
                  </p>
              </div>
              {/* Client Name */}
              <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
-                <p className={`text-lg font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                 <label className={`text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Client</label>
+                <p className={`text-lg font-semibold mt-1 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
                   {invoice.client_name}
                 </p>
              </div>
               {/* Description */}
              <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
-                 <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                 <label className={`text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Description</label>
+                 <p className={`mt-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                    {invoice.description}
                  </p>
              </div>
@@ -285,12 +290,14 @@ const InvoicePage: React.FC = () => {
                  ? 'bg-gradient-to-br from-blue-900/30 to-blue-800/30 border-blue-700'
                  : 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200'
              }`}>
-                  <p className={`text-3xl font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                    ${invoice.amount}
+                 <label className={`text-sm font-semibold uppercase tracking-wider ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>Total Amount</label>
+                  <p className={`text-3xl font-bold text-right ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                    ${invoice.amount} USD
                   </p>
              </div>
               {/* Status Badge */}
              <div className="flex items-center justify-between">
+                   <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Payment Status</span>
                    <span className={`px-4 py-2 rounded-full text-sm font-semibold ${
                      invoice.status === 'PAID'
                        ? 'bg-green-100 text-green-800'
@@ -328,8 +335,8 @@ const InvoicePage: React.FC = () => {
           <p>Powered by Flutterwave • Secure Card Payments</p>
         </div>
       </div>
-    </div> // ✅ Closing div for main container
-  ); // ✅ Closing parenthesis for return
-}; // ✅ Closing brace for InvoicePage component
+    </div> // Closing div for main container
+  ); // Closing parenthesis for return
+}; // Closing brace for InvoicePage component
 
-export default InvoicePage; // ✅ Export statement
+export default InvoicePage; // Export statement
