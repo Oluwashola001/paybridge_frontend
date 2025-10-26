@@ -135,7 +135,7 @@ const InvoicePage: React.FC = () => {
     tx_ref: invoice.invoice_id,
     amount: parseFloat(invoice.amount),
     currency: "USD",
-    payment_options: "card,applepay,googlepay,banktransfer", // ✅ Make sure this line has proper quotes
+    payment_options: "card,googlepay,banktransfer", // ✅ Make sure this line has proper quotes
     customer: {
       email: 'customer-email@example.com',
       phone_number: '08000000000',
