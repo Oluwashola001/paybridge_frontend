@@ -117,46 +117,50 @@ const InvoicePage: React.FC = () => {
 
 
   const handlePayment = () => {
-    // This check is now robust.
-    if (!invoice || !flutterwavePublicKey || typeof window.FlutterwaveCheckout !== 'function') {
-      alert("Payment service is not ready. Please refresh the page and try again.");
-      console.error("Payment attempt before resources were ready.");
-      return;
-    }
-    
-    setIsProcessing(true);
+  console.log("=== Payment Debug Info ===");
+  console.log("Invoice:", invoice);
+  console.log("Public Key:", flutterwavePublicKey);
+  console.log("FlutterwaveCheckout available:", typeof window.FlutterwaveCheckout);
+  
+  if (!invoice || !flutterwavePublicKey || typeof window.FlutterwaveCheckout !== 'function') {
+    alert("Payment service is not ready. Please refresh the page and try again.");
+    console.error("Payment attempt before resources were ready.");
+    return;
+  }
+  
+  setIsProcessing(true);
 
-    window.FlutterwaveCheckout({
-  public_key: flutterwavePublicKey.trim(),
-  tx_ref: invoice.invoice_id,
-  amount: parseFloat(invoice.amount),
-  currency: "USD",
-  payment_options: "card,applepay,googlepay,paypal", // ✅ Best for international
-  customer: {
-    email: 'customer-email@example.com',
-    phone_number: '08000000000',
-    name: invoice.client_name,
-  },
-  customizations: {
-    title: 'PayBridge Invoice Payment',
-    description: invoice.description,
-    logo: `${frontendUrl}/logo-paybridge.png`,
-  },
-  callback: function (response: any) {
-    console.log("Flutterwave Payment Successful:", response);
-    if (response.status === 'successful' || response.status === 'completed') {
-        navigate(`/success/${invoiceId}`);
-    } else {
-        alert('Payment was not successful. Please try again.');
-        setIsProcessing(false);
-    }
-  },
-  onclose: function () {
-    console.log('Flutterwave modal closed by user.');
-    setIsProcessing(false);
-  },
-});
-
+  window.FlutterwaveCheckout({
+    public_key: flutterwavePublicKey.trim(),
+    tx_ref: invoice.invoice_id,
+    amount: parseFloat(invoice.amount),
+    currency: "USD",
+    payment_options: "card,applepay,googlepay,paypal", // ✅ Make sure this line has proper quotes
+    customer: {
+      email: 'customer-email@example.com',
+      phone_number: '08000000000',
+      name: invoice.client_name,
+    },
+    customizations: {
+      title: 'PayBridge Invoice Payment',
+      description: invoice.description,
+      logo: `${frontendUrl}/logo-paybridge.png`,
+    },
+    callback: function (response: any) {
+      console.log("Flutterwave Payment Successful:", response);
+      if (response.status === 'successful' || response.status === 'completed') {
+          navigate(`/success/${invoiceId}`);
+      } else {
+          alert('Payment was not successful. Please try again.');
+          setIsProcessing(false);
+      }
+    },
+    onclose: function () {
+      console.log('Flutterwave modal closed by user.');
+      setIsProcessing(false);
+    },
+  });
+};
   
   // --- JSX Rendering Logic ---
   if (loading) {
