@@ -19,6 +19,29 @@ interface Invoice {
   status: string;
 }
 
+// ✅ Function to load the Flutterwave script dynamically
+const FLUTTERWAVE_SANDBOX_SCRIPT = "https://checkout.flutterwave.com/v3-sandbox.js";
+const loadFlutterwaveScript = (): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    // Check if script is already loaded
+    if (typeof window.FlutterwaveCheckout === 'function') {
+      resolve();
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = FLUTTERWAVE_SANDBOX_SCRIPT;
+    script.onload = () => {
+      console.log("Flutterwave sandbox script loaded successfully.");
+      resolve();
+    };
+    script.onerror = () => {
+      console.error("Flutterwave script failed to load.");
+      reject(new Error("Flutterwave script failed to load."));
+    };
+    document.body.appendChild(script);
+  });
+};
+
 const InvoicePage: React.FC = () => {
   const { invoiceId } = useParams();
   const navigate = useNavigate();
@@ -30,7 +53,6 @@ const InvoicePage: React.FC = () => {
     const saved = localStorage.getItem('darkMode');
     return saved ? JSON.parse(saved) : false;
   });
-  // This state is no longer strictly needed but good for debugging
   const [flutterwavePublicKey, setFlutterwavePublicKey] = useState('');
 
   const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
@@ -40,68 +62,49 @@ const InvoicePage: React.FC = () => {
     localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
   }, [isDarkMode]);
 
-  // ✅ This hook now fetches the key AND checks for the script
+  // ✅ This hook now fetches data AND loads the script in parallel
   useEffect(() => {
     let isMounted = true;
-
-    const checkScriptAndSetReady = (apiKey: string) => {
-      let attempts = 0;
-      const maxAttempts = 20; // 10 seconds
-      const interval = setInterval(() => {
-        if (typeof window.FlutterwaveCheckout === 'function') {
-          // Script is loaded
-          clearInterval(interval);
-          if (isMounted) {
-            setFlutterwavePublicKey(apiKey); // Store the key
-            setLoading(false); // ✅ Set loading false *only* when script is ready
-            console.log("Flutterwave script loaded and ready.");
-          }
-        } else {
-          // Script not loaded yet, check again
-          attempts++;
-          if (attempts > maxAttempts) {
-            clearInterval(interval);
-            console.error("Flutterwave script failed to load after 10 seconds.");
-            if (isMounted) {
-              setError("Payment script failed to load. Please refresh.");
-              setLoading(false); // Stop loading, show error
-            }
-          }
-        }
-      }, 500); // Check every 500ms
-    };
-
     const fetchData = async () => {
       try {
-        if (!isMounted) return;
         setLoading(true);
         setError("");
 
-        // 1. Fetch Invoice
-        const invoiceRes = await axios.get(`${apiUrl}/invoices/${invoiceId}`);
+        // Define the two tasks
+        const fetchInvoiceTask = axios.get(`${apiUrl}/invoices/${invoiceId}`);
+        const fetchKeyTask = axios.get(`${apiUrl}/config/flutterwave-key`);
+        const loadScriptTask = loadFlutterwaveScript();
+
+        // Wait for all tasks to complete
+        const [invoiceRes, keyRes] = await Promise.all([
+          fetchInvoiceTask,
+          fetchKeyTask,
+          loadScriptTask // This will resolve only when the script is loaded
+        ]);
+
         if (!isMounted) return;
+
+        // Process Invoice Data
         if (invoiceRes.data && invoiceRes.data.invoice_id) {
           setInvoice(invoiceRes.data);
         } else {
-          setError("Invoice not found");
-          setLoading(false); return;
+          throw new Error("Invoice not found");
         }
 
-        // 2. Fetch Flutterwave Public Key
-        const keyRes = await axios.get(`${apiUrl}/config/flutterwave-key`);
-        if (!isMounted) return;
+        // Process Key Data
         if (keyRes.data && keyRes.data.publicKey) {
+          setFlutterwavePublicKey(keyRes.data.publicKey);
           console.log("Flutterwave Public Key fetched successfully.");
-          // 3. Key is fetched, now wait for the script to load
-          checkScriptAndSetReady(keyRes.data.publicKey);
         } else {
           throw new Error("Flutterwave public key not found in API response.");
         }
+
       } catch (err: any) {
         if (!isMounted) return;
         console.error("Error during setup:", err);
         setError(err.message || "Unable to load invoice or payment configuration.");
-        setLoading(false);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
 
@@ -112,7 +115,7 @@ const InvoicePage: React.FC = () => {
 
 
   const handlePayment = () => {
-    // This check is now redundant but good for safety
+    // This check is now robust
     if (!invoice || !flutterwavePublicKey || typeof window.FlutterwaveCheckout !== 'function') {
       alert("Payment service is not ready. Please refresh the page and try again.");
       console.error("Payment attempt before resources were ready.");
@@ -155,6 +158,7 @@ const InvoicePage: React.FC = () => {
 
   
   // --- JSX Rendering Logic ---
+  // (All the JSX for loading, error, and the page remains the same)
   if (loading) {
     return (
       <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
@@ -165,15 +169,14 @@ const InvoicePage: React.FC = () => {
          <div className="text-center">
            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
            <p className={`text-lg font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-             Loading invoice...
+             Loading payment details...
            </p>
          </div>
       </div>
     );
   }
 
-  // Error state
-  if (error || !invoice) {
+  if (error || !invoice) { // Simplified error check
     return (
       <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 py-8 px-4 ${
         isDarkMode
@@ -253,28 +256,24 @@ const InvoicePage: React.FC = () => {
 
           {/* Invoice Info */}
            <div className="space-y-5 mb-8">
-             {/* Invoice ID */}
              <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
                 <label className={`text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Invoice ID</label>
                  <p className={`font-mono text-sm mt-1 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
                    {invoice.invoice_id}
                  </p>
              </div>
-             {/* Client Name */}
              <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
                  <label className={`text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Client</label>
                 <p className={`text-lg font-semibold mt-1 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
                   {invoice.client_name}
                 </p>
              </div>
-              {/* Description */}
              <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
                  <label className={`text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Description</label>
                  <p className={`mt-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                    {invoice.description}
                  </p>
              </div>
-              {/* Amount - Highlighted */}
              <div className={`p-6 rounded-xl border-2 ${
                isDarkMode
                  ? 'bg-gradient-to-br from-blue-900/30 to-blue-800/30 border-blue-700'
@@ -285,7 +284,6 @@ const InvoicePage: React.FC = () => {
                     ${invoice.amount} USD
                   </p>
              </div>
-              {/* Status Badge */}
              <div className="flex items-center justify-between">
                    <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Payment Status</span>
                    <span className={`px-4 py-2 rounded-full text-sm font-semibold ${
