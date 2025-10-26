@@ -23,13 +23,14 @@ const InvoicePage: React.FC = () => {
   const { invoiceId } = useParams();
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Start loading
   const [error, setError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
     return saved ? JSON.parse(saved) : false;
   });
+  // This state is no longer strictly needed but good for debugging
   const [flutterwavePublicKey, setFlutterwavePublicKey] = useState('');
 
   const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
@@ -39,14 +40,44 @@ const InvoicePage: React.FC = () => {
     localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
   }, [isDarkMode]);
 
-  // Fetch Invoice AND Flutterwave Public Key
+  // ✅ This hook now fetches the key AND checks for the script
   useEffect(() => {
     let isMounted = true;
+
+    const checkScriptAndSetReady = (apiKey: string) => {
+      let attempts = 0;
+      const maxAttempts = 20; // 10 seconds
+      const interval = setInterval(() => {
+        if (typeof window.FlutterwaveCheckout === 'function') {
+          // Script is loaded
+          clearInterval(interval);
+          if (isMounted) {
+            setFlutterwavePublicKey(apiKey); // Store the key
+            setLoading(false); // ✅ Set loading false *only* when script is ready
+            console.log("Flutterwave script loaded and ready.");
+          }
+        } else {
+          // Script not loaded yet, check again
+          attempts++;
+          if (attempts > maxAttempts) {
+            clearInterval(interval);
+            console.error("Flutterwave script failed to load after 10 seconds.");
+            if (isMounted) {
+              setError("Payment script failed to load. Please refresh.");
+              setLoading(false); // Stop loading, show error
+            }
+          }
+        }
+      }, 500); // Check every 500ms
+    };
+
     const fetchData = async () => {
       try {
+        if (!isMounted) return;
         setLoading(true);
         setError("");
 
+        // 1. Fetch Invoice
         const invoiceRes = await axios.get(`${apiUrl}/invoices/${invoiceId}`);
         if (!isMounted) return;
         if (invoiceRes.data && invoiceRes.data.invoice_id) {
@@ -56,30 +87,24 @@ const InvoicePage: React.FC = () => {
           setLoading(false); return;
         }
 
-        try {
-            const keyRes = await axios.get(`${apiUrl}/config/flutterwave-key`);
-            if (!isMounted) return;
-            if (keyRes.data && keyRes.data.publicKey) {
-                setFlutterwavePublicKey(keyRes.data.publicKey);
-                console.log("Flutterwave Public Key fetched successfully.");
-            } else {
-                 throw new Error("Flutterwave public key not found in API response.");
-            }
-        } catch (keyErr) {
-             if (!isMounted) return;
-             console.error("Error fetching Flutterwave key:", keyErr);
-             setError("Payment configuration error.");
-             setLoading(false); return;
-        }
-
-      } catch (err) {
+        // 2. Fetch Flutterwave Public Key
+        const keyRes = await axios.get(`${apiUrl}/config/flutterwave-key`);
         if (!isMounted) return;
-        console.error("Error fetching data:", err);
-        setError("Unable to load invoice or payment configuration.");
-      } finally {
-        if (isMounted) setLoading(false);
+        if (keyRes.data && keyRes.data.publicKey) {
+          console.log("Flutterwave Public Key fetched successfully.");
+          // 3. Key is fetched, now wait for the script to load
+          checkScriptAndSetReady(keyRes.data.publicKey);
+        } else {
+          throw new Error("Flutterwave public key not found in API response.");
+        }
+      } catch (err: any) {
+        if (!isMounted) return;
+        console.error("Error during setup:", err);
+        setError(err.message || "Unable to load invoice or payment configuration.");
+        setLoading(false);
       }
     };
+
     fetchData();
 
     return () => { isMounted = false };
@@ -87,22 +112,15 @@ const InvoicePage: React.FC = () => {
 
 
   const handlePayment = () => {
-    if (!invoice || !flutterwavePublicKey) {
-      alert("Payment details or configuration missing.");
-      return;
-    }
-
-    // ✅ FIX: Check if the Flutterwave script has loaded
-    if (typeof window.FlutterwaveCheckout !== 'function') {
-      console.error("Flutterwave script has not loaded!");
+    // This check is now redundant but good for safety
+    if (!invoice || !flutterwavePublicKey || typeof window.FlutterwaveCheckout !== 'function') {
       alert("Payment service is not ready. Please refresh the page and try again.");
-      setIsProcessing(false); // Reset button if it was clicked
-      return; // Stop execution
+      console.error("Payment attempt before resources were ready.");
+      return;
     }
     
     setIsProcessing(true);
 
-    // Now it's safe to call the function
     window.FlutterwaveCheckout({
       public_key: flutterwavePublicKey,
       tx_ref: invoice.invoice_id,
@@ -110,8 +128,8 @@ const InvoicePage: React.FC = () => {
       currency: "USD",
       payment_options: "card,ussd,banktransfer",
       customer: {
-        email: 'customer-email@example.com', // Placeholder
-        phone_number: '08000000000', // Placeholder
+        email: 'customer-email@example.com',
+        phone_number: '08000000000',
         name: invoice.client_name,
       },
       customizations: {
@@ -137,7 +155,6 @@ const InvoicePage: React.FC = () => {
 
   
   // --- JSX Rendering Logic ---
-  // (All the JSX for loading, error, and the page remains the same)
   if (loading) {
     return (
       <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
@@ -155,7 +172,8 @@ const InvoicePage: React.FC = () => {
     );
   }
 
-  if (error || !invoice || !flutterwavePublicKey) {
+  // Error state
+  if (error || !invoice) {
     return (
       <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 py-8 px-4 ${
         isDarkMode
@@ -169,10 +187,10 @@ const InvoicePage: React.FC = () => {
              </svg>
            </div>
            <h2 className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-             {error ? "Error Loading" : "Invoice Not Found"}
+             Error Loading
            </h2>
            <p className={`mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-             {error || "The invoice data could not be loaded or payment cannot be processed."}
+             {error || "The invoice data could not be loaded."}
            </p>
            <button
              onClick={() => navigate('/')}
@@ -185,6 +203,7 @@ const InvoicePage: React.FC = () => {
     );
   }
 
+  // --- Main Content (when loading is false and no error) ---
   return (
     <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 py-8 px-4 ${
       isDarkMode
@@ -284,9 +303,9 @@ const InvoicePage: React.FC = () => {
           {invoice.status !== 'PAID' && (
              <button
               onClick={handlePayment} // Use the new handlePayment function
-              disabled={isProcessing || !flutterwavePublicKey}
+              disabled={isProcessing} // Button is only clickable when loading is false
               className={`w-full py-4 px-6 rounded-xl font-semibold shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                isProcessing || !flutterwavePublicKey
+                isProcessing
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transform hover:-translate-y-0.5 hover:shadow-xl'
               } text-white`}
@@ -309,7 +328,7 @@ const InvoicePage: React.FC = () => {
           )}
 
           {invoice.status === 'PAID' && (
-             <div className={`p-4 rounded-xl flex items-center gap-3 ${isDarkMode ? 'bg-green-900/30 border border-green-700' : 'bg-green-50 border-green-200'}`}> 
+             <div className={`p-4 rounded-xl flex items-center gap-3 ${isDarkMode ? 'bg-green-900/30 border border-green-700' : 'bg-green-50 border border-green-200'}`}> 
                 <svg className="w-6 h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
