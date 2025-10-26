@@ -74,7 +74,7 @@ const InvoicePage: React.FC = () => {
         // 1. Define all async tasks
         const fetchInvoiceTask = axios.get(`${apiUrl}/invoices/${invoiceId}`);
         const fetchKeyTask = axios.get(`${apiUrl}/config/flutterwave-key`);
-        const loadScriptTask = waitForFlutterwaveScript(); // Wait for the script
+        const loadScriptTask = waitForFlutterwaveScript(); // This promise waits for the script
 
         // 2. Wait for all tasks to complete in parallel
         const [invoiceRes, keyRes] = await Promise.all([
@@ -101,9 +101,10 @@ const InvoicePage: React.FC = () => {
         }
 
       } catch (err: any) {
-        if (!isMounted) return;
-        console.error("Error during setup:", err);
-        setError(err.message || "Unable to load invoice or payment configuration.");
+        if (isMounted) {
+          console.error("Error during setup:", err);
+          setError(err.message || "Unable to load invoice or payment configuration.");
+        }
       } finally {
         if (isMounted) setLoading(false); // Stop loading *only* after all tasks are done
       }
@@ -116,7 +117,7 @@ const InvoicePage: React.FC = () => {
 
 
   const handlePayment = () => {
-    // This check is now robust
+    // This check is now robust.
     if (!invoice || !flutterwavePublicKey || typeof window.FlutterwaveCheckout !== 'function') {
       alert("Payment service is not ready. Please refresh the page and try again.");
       console.error("Payment attempt before resources were ready.");
@@ -159,8 +160,6 @@ const InvoicePage: React.FC = () => {
 
   
   // --- JSX Rendering Logic ---
-  // (The JSX below is complete and correct)
-
   if (loading) {
     return (
       <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
@@ -257,28 +256,24 @@ const InvoicePage: React.FC = () => {
 
           {/* Invoice Info */}
            <div className="space-y-5 mb-8">
-             {/* Invoice ID */}
              <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
                 <label className={`text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Invoice ID</label>
                  <p className={`font-mono text-sm mt-1 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
                    {invoice.invoice_id}
                  </p>
              </div>
-             {/* Client Name */}
              <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
                  <label className={`text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Client</label>
                 <p className={`text-lg font-semibold mt-1 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
                   {invoice.client_name}
                 </p>
              </div>
-              {/* Description */}
-             <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
+             <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-gray-700/5m-0' : 'bg-gray-50'}`}>
                  <label className={`text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Description</label>
                  <p className={`mt-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                    {invoice.description}
                  </p>
              </div>
-              {/* Amount - Highlighted */}
              <div className={`p-6 rounded-xl border-2 ${
                isDarkMode
                  ? 'bg-gradient-to-br from-blue-900/30 to-blue-800/30 border-blue-700'
@@ -289,7 +284,6 @@ const InvoicePage: React.FC = () => {
                     ${invoice.amount} USD
                   </p>
              </div>
-              {/* Status Badge */}
              <div className="flex items-center justify-between">
                    <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Payment Status</span>
                    <span className={`px-4 py-2 rounded-full text-sm font-semibold ${
