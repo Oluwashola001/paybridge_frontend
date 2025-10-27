@@ -139,23 +139,24 @@ const InvoicePage: React.FC = () => {
     window.FlutterwaveCheckout({
       public_key: flutterwavePublicKey.trim(),
       tx_ref: invoice.invoice_id,
-      // IMPORTANT: Make sure the invoice amount makes sense in NGN for your test!
+      // Amount will be treated as USD again
       amount: parseFloat(invoice.amount),
-      // --- CURRENCY CHANGED ---
-      currency: "NGN",
-      // --- PAYMENT OPTIONS UPDATED (Optional, includes common NGN methods) ---
-      payment_options: "card,ussd,banktransfer",
-      // --- UPDATED CUSTOMER INFO ---
+      // --- CURRENCY REVERTED ---
+      currency: "USD",
+      // --- PAYMENT OPTIONS REVERTED (Original setting for international) ---
+      payment_options: "card,googlepay,applepay",
+      // --- CUSTOMER INFO ---
+      // Uses client's details from invoice if available, otherwise falls back.
       customer: {
         email: invoice.client_email || "yourbusiness@gmail.com",
-        // --- PHONE NUMBER UPDATED (Optional, Nigerian format placeholder) ---
-        phone_number: invoice.client_phone || "08012345678",
+        // --- PHONE NUMBER FALLBACK REVERTED ---
+        phone_number: invoice.client_phone || "+1-555-000-0000",
         name: invoice.client_name,
       },
       customizations: {
         title: "PayBridge Invoice",
         description: invoice.description,
-        logo: `${frontendUrl}/logo-paybridge.jpg`,
+        logo: `${frontendUrl}/logo-paybridge.png`, // Corrected logo extension back to .png
       },
       callback: function (response: any) {
         console.log("Flutterwave Payment Response:", response);
