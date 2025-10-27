@@ -139,14 +139,17 @@ const InvoicePage: React.FC = () => {
     window.FlutterwaveCheckout({
       public_key: flutterwavePublicKey.trim(),
       tx_ref: invoice.invoice_id,
+      // IMPORTANT: Make sure the invoice amount makes sense in NGN for your test!
       amount: parseFloat(invoice.amount),
-      currency: "USD",
-      payment_options: "card,googlepay,applepay",
+      // --- CURRENCY CHANGED ---
+      currency: "NGN",
+      // --- PAYMENT OPTIONS UPDATED (Optional, includes common NGN methods) ---
+      payment_options: "card,ussd,banktransfer",
       // --- UPDATED CUSTOMER INFO ---
-      // Use the client's details from the invoice, with a fallback.
       customer: {
         email: invoice.client_email || "yourbusiness@gmail.com",
-        phone_number: invoice.client_phone || "+1-555-000-0000",
+        // --- PHONE NUMBER UPDATED (Optional, Nigerian format placeholder) ---
+        phone_number: invoice.client_phone || "08012345678",
         name: invoice.client_name,
       },
       customizations: {
