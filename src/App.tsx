@@ -120,7 +120,7 @@ const App = () => {
           {/* Logo with Text */}
           <div className="flex items-center gap-3">
             <img 
-              src="/logo-paybridge.png" 
+              src="/logo-paybridge.jpg" 
               alt="PayBridge Logo" 
               className="h-10 w-10 object-cover rounded-full"
               onError={(e) => {
