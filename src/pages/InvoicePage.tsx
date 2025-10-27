@@ -155,7 +155,7 @@ const InvoicePage: React.FC = () => {
       customizations: {
         title: "PayBridge Invoice",
         description: invoice.description,
-        logo: `${frontendUrl}/logo-paybridge.png`,
+        logo: `${frontendUrl}/logo-paybridge.jpg`,
       },
       callback: function (response: any) {
         console.log("Flutterwave Payment Response:", response);
